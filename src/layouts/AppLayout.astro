@@ -1,0 +1,49 @@
+---
+import '@/styles/globals.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+const { profile } = Astro.locals;
+const isAdmin = profile?.roles.includes('admin');
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | Farmlinker</title>
+  </head>
+  <body class="min-h-screen bg-background">
+    <header class="border-b bg-white">
+      <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <a href="/app" class="text-lg font-bold text-primary">Farmlinker</a>
+        <nav class="flex items-center gap-4 text-sm">
+          {profile?.status === 'approved' && (
+            <>
+              <a href="/app/listings" class="text-muted-foreground hover:text-foreground">Listings</a>
+              <a href="/app/search" class="text-muted-foreground hover:text-foreground">Search</a>
+              <a href="/app/inquiries" class="text-muted-foreground hover:text-foreground">Inquiries</a>
+            </>
+          )}
+          <a href="/app/profile" class="text-muted-foreground hover:text-foreground">Profile</a>
+          {isAdmin && (
+            <a href="/admin" class="text-muted-foreground hover:text-foreground">Admin</a>
+          )}
+          <form method="POST" action="/auth/sign-out">
+            <button type="submit" class="text-muted-foreground hover:text-foreground">
+              Sign out
+            </button>
+          </form>
+        </nav>
+      </div>
+    </header>
+    <main class="mx-auto max-w-5xl px-4 py-8">
+      <slot />
+    </main>
+  </body>
+</html>

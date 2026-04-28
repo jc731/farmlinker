@@ -1,0 +1,30 @@
+---
+import '@/styles/globals.css';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title} | Farmlinker</title>
+  </head>
+  <body class="min-h-screen bg-muted/40 flex flex-col items-center justify-center p-4">
+    <a href="/" class="mb-8 flex items-center gap-2">
+      <span class="text-2xl font-bold text-primary">Farmlinker</span>
+    </a>
+    <div class="w-full max-w-md">
+      <slot />
+    </div>
+    <p class="mt-8 text-xs text-muted-foreground">
+      &copy; {new Date().getFullYear()} Farmlinker
+    </p>
+  </body>
+</html>

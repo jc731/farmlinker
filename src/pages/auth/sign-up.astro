@@ -1,0 +1,17 @@
+---
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { SignUpForm } from '@/components/auth/SignUpForm';
+---
+
+<AuthLayout title="Sign up">
+  <Card>
+    <CardHeader>
+      <CardTitle>Join Farmlinker</CardTitle>
+      <CardDescription>Connect with farmers and landowners across Illinois.</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <SignUpForm client:load />
+    </CardContent>
+  </Card>
+</AuthLayout>

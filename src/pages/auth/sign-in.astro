@@ -1,0 +1,19 @@
+---
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { SignInForm } from '@/components/auth/SignInForm';
+
+const errorParam = Astro.url.searchParams.get('error');
+---
+
+<AuthLayout title="Sign in">
+  <Card>
+    <CardHeader>
+      <CardTitle>Welcome back</CardTitle>
+      <CardDescription>Sign in to your Farmlinker account.</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <SignInForm client:load errorParam={errorParam} />
+    </CardContent>
+  </Card>
+</AuthLayout>

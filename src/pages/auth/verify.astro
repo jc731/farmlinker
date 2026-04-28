@@ -1,0 +1,20 @@
+---
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+---
+
+<AuthLayout title="Check your email">
+  <Card>
+    <CardHeader>
+      <CardTitle>Check your email</CardTitle>
+      <CardDescription>We've sent you a confirmation link.</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-3 text-sm text-muted-foreground">
+      <p>Click the link in the email to activate your account. It may take a minute to arrive.</p>
+      <p>
+        Already confirmed?{' '}
+        <a href="/auth/sign-in" class="text-primary hover:underline">Sign in</a>
+      </p>
+    </CardContent>
+  </Card>
+</AuthLayout>

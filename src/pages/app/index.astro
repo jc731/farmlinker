@@ -1,0 +1,102 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+
+const { profile } = Astro.locals;
+const isPending = profile?.status === 'pending';
+const isApproved = profile?.status === 'approved';
+const isFarmer = profile?.roles.includes('farmer');
+const isLandowner = profile?.roles.includes('landowner');
+---
+
+<AppLayout title="Dashboard">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold">
+        Welcome{profile?.first_name ? `, ${profile.first_name}` : ''}
+      </h1>
+      <p class="text-muted-foreground">
+        <span class="capitalize">{profile?.roles.join(' & ')}</span>
+        {isPending && <span class="ml-1">· Pending review</span>}
+        {isApproved && <span class="ml-1">· Approved</span>}
+      </p>
+    </div>
+
+    {isPending && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Complete your profile</CardTitle>
+          <CardDescription>
+            Fill out your full profile to unlock contact details and connect with
+            {isFarmer ? ' landowners' : ' farmers'}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex gap-3">
+          {isFarmer && (
+            <a
+              href="/app/onboarding/farmer"
+              class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Complete farmer profile
+            </a>
+          )}
+          {isLandowner && (
+            <a
+              href="/app/onboarding/landowner"
+              class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+            >
+              Complete landowner profile
+            </a>
+          )}
+        </CardContent>
+      </Card>
+    )}
+
+    {isApproved && (
+      <div class="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Browse listings</CardTitle>
+            <CardDescription>Find available farmland in your area.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a
+              href="/app/listings"
+              class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              View listings
+            </a>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Search</CardTitle>
+            <CardDescription>Filter by county, acreage, and more.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a
+              href="/app/search"
+              class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              Search
+            </a>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Inquiries</CardTitle>
+            <CardDescription>Your active conversations.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <a
+              href="/app/inquiries"
+              class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              View inquiries
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+    )}
+  </div>
+</AppLayout>

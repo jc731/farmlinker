@@ -1,5 +1,23 @@
 /// <reference path="../.astro/types.d.ts" />
 
+import type { SupabaseClient, User } from '@supabase/supabase-js';
+
+declare global {
+  namespace App {
+    interface Locals {
+      supabase: SupabaseClient;
+      user: User | null;
+      profile: {
+        id: string;
+        roles: string[];
+        status: string;
+        first_name: string;
+        last_name: string;
+      } | null;
+    }
+  }
+}
+
 interface ImportMetaEnv {
   readonly PUBLIC_SUPABASE_URL: string;
   readonly PUBLIC_SUPABASE_ANON_KEY: string;
