@@ -7,7 +7,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "supabase": "supabase"
   },
   "dependencies": {
     "@astrojs/node": "^9.0.0",
@@ -28,9 +29,14 @@
     "@astrojs/check": "^0.9.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "supabase": "^2.95.5",
     "typescript": "^5.7.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "sharp"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp",
+      "supabase"
+    ]
   }
 }
