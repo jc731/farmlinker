@@ -198,6 +198,7 @@ E5 must be done early so the admin can unblock the first test farmers and landow
 |---|---|---|
 | Remove `/auth/` prefix from auth routes | low | `/auth/sign-in` → `/sign-in`, etc. Clean URLs, no urgency |
 | Move onboarding forms from `/onboarding/*` to `/app/onboarding/*` | medium | Forms are at public path for dev preview; move and wire auth when ready |
+| Profile edit page (`/app/profile`) | medium | Users complete onboarding in one go; edit individual fields from profile page after |
 
 ---
 

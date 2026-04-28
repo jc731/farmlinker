@@ -1,0 +1,66 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+const { supabase } = Astro.locals;
+
+const [
+  { count: pendingUsers },
+  { count: approvedUsers },
+  { count: totalUsers },
+  { count: pendingListings },
+] = await Promise.all([
+  supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+  supabase.from('profiles').select('*', { count: 'exact', head: true }),
+  supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+]);
+
+const stats = [
+  { label: 'Pending users', value: pendingUsers ?? 0, href: '/admin/review/users', urgent: (pendingUsers ?? 0) > 0 },
+  { label: 'Approved users', value: approvedUsers ?? 0, href: '/admin/users' },
+  { label: 'Total users', value: totalUsers ?? 0, href: '/admin/users' },
+  { label: 'Pending listings', value: pendingListings ?? 0, href: '/admin/review/listings', urgent: (pendingListings ?? 0) > 0 },
+];
+---
+
+<AdminLayout title="Dashboard">
+  <div class="space-y-6">
+    <h1 class="text-2xl font-bold">Dashboard</h1>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {stats.map(({ label, value, href, urgent }) => (
+        <a
+          href={href}
+          class:list={[
+            'block rounded-lg border bg-white p-5 shadow-sm transition-shadow hover:shadow-md',
+            urgent && 'border-amber-400',
+          ]}
+        >
+          <div class:list={['text-3xl font-bold', urgent ? 'text-amber-600' : 'text-foreground']}>
+            {value}
+          </div>
+          <div class="mt-1 text-sm text-muted-foreground">{label}</div>
+          {urgent && <div class="mt-2 text-xs font-medium text-amber-600">Needs attention</div>}
+        </a>
+      ))}
+    </div>
+
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-3 font-semibold">Quick actions</h2>
+      <div class="flex flex-wrap gap-3">
+        <a href="/admin/review/users"
+          class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          Review pending users
+        </a>
+        <a href="/admin/review/listings"
+          class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent">
+          Review pending listings
+        </a>
+        <a href="/admin/users"
+          class="rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent">
+          Manage all users
+        </a>
+      </div>
+    </div>
+  </div>
+</AdminLayout>

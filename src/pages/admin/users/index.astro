@@ -1,0 +1,113 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+const { supabase } = Astro.locals;
+
+const statusFilter = Astro.url.searchParams.get('status') ?? 'all';
+
+let query = supabase
+  .from('profiles')
+  .select('id, email, roles, status, first_name, last_name, created_at')
+  .order('created_at', { ascending: false });
+
+if (statusFilter !== 'all') {
+  query = query.eq('status', statusFilter);
+}
+
+const { data: users } = await query;
+
+const STATUS_COLORS: Record<string, string> = {
+  pending:   'bg-amber-100 text-amber-700',
+  approved:  'bg-green-100 text-green-700',
+  rejected:  'bg-red-100 text-red-700',
+  suspended: 'bg-zinc-100 text-zinc-700',
+};
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
+  month: 'short', day: 'numeric', year: 'numeric',
+});
+
+const filterOptions = ['all', 'pending', 'approved', 'rejected', 'suspended'];
+---
+
+<AdminLayout title="All users">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold">All users</h1>
+      <span class="text-sm text-muted-foreground">{users?.length ?? 0} shown</span>
+    </div>
+
+    <!-- Filters -->
+    <div class="flex gap-2">
+      {filterOptions.map(s => (
+        <a
+          href={s === 'all' ? '/admin/users' : `/admin/users?status=${s}`}
+          class:list={[
+            'rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors',
+            statusFilter === s
+              ? 'bg-primary text-primary-foreground'
+              : 'border hover:bg-muted',
+          ]}
+        >
+          {s}
+        </a>
+      ))}
+    </div>
+
+    <div class="overflow-hidden rounded-lg border bg-white shadow-sm">
+      <table class="w-full text-sm">
+        <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          <tr>
+            <th class="px-4 py-3 text-left">Name</th>
+            <th class="px-4 py-3 text-left">Email</th>
+            <th class="px-4 py-3 text-left">Role(s)</th>
+            <th class="px-4 py-3 text-left">Status</th>
+            <th class="px-4 py-3 text-left">Joined</th>
+            <th class="px-4 py-3"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          {users?.map(user => (
+            <tr class="hover:bg-muted/20">
+              <td class="px-4 py-3 font-medium">
+                {user.first_name} {user.last_name}
+              </td>
+              <td class="px-4 py-3 text-muted-foreground">{user.email}</td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-1">
+                  {user.roles.map((r: string) => (
+                    <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <span class:list={[
+                  'rounded-full px-2 py-0.5 text-xs font-medium capitalize',
+                  STATUS_COLORS[user.status] ?? 'bg-muted text-muted-foreground',
+                ]}>
+                  {user.status}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-muted-foreground">{fmt(user.created_at)}</td>
+              <td class="px-4 py-3">
+                <a href={`/admin/users/${user.id}`}
+                  class="text-xs text-primary hover:underline">
+                  View →
+                </a>
+              </td>
+            </tr>
+          ))}
+          {(!users || users.length === 0) && (
+            <tr>
+              <td colspan="6" class="px-4 py-12 text-center text-muted-foreground">
+                No users found.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

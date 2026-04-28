@@ -1,0 +1,194 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+
+const { supabase } = Astro.locals;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect('/admin/users');
+
+const [
+  { data: profile },
+  { data: farmerProfile },
+  { data: landownerProfile },
+  { data: farmerDemo },
+  { data: landownerDemo },
+] = await Promise.all([
+  supabase.from('profiles').select('*').eq('id', id).single(),
+  supabase.from('farmer_profiles').select('*').eq('profile_id', id).single(),
+  supabase.from('landowner_profiles').select('*').eq('profile_id', id).single(),
+  supabase.from('farmer_demographics').select('*').eq('profile_id', id).single(),
+  supabase.from('landowner_demographics').select('*').eq('profile_id', id).single(),
+]);
+
+if (!profile) return Astro.redirect('/admin/users');
+
+const isFarmer = profile.roles?.includes('farmer');
+const isLandowner = profile.roles?.includes('landowner');
+
+const STATUS_COLORS: Record<string, string> = {
+  pending:   'bg-amber-100 text-amber-700',
+  approved:  'bg-green-100 text-green-700',
+  rejected:  'bg-red-100 text-red-700',
+  suspended: 'bg-zinc-100 text-zinc-700',
+};
+
+const fmt = (iso: string | null) => iso
+  ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  : '—';
+
+type FieldValue = string | string[] | boolean | null | undefined;
+const display = (v: FieldValue) => {
+  if (v === null || v === undefined || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
+  return String(v);
+};
+---
+
+<AdminLayout title={`${profile.first_name} ${profile.last_name}`}>
+  <div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-muted-foreground">
+      <a href="/admin/users" class="hover:text-foreground">All users</a>
+      <span class="mx-2">›</span>
+      <span>{profile.first_name} {profile.last_name}</span>
+    </nav>
+
+    <!-- Header card -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold">{profile.first_name} {profile.last_name}</h1>
+          <p class="text-muted-foreground">{profile.email}</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span class:list={[
+              'rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+              STATUS_COLORS[profile.status] ?? '',
+            ]}>
+              {profile.status}
+            </span>
+            {profile.roles?.map((r: string) => (
+              <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium capitalize text-primary">
+                {r}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex flex-wrap gap-2">
+          {profile.status !== 'approved' && (
+            <form method="POST" action={`/api/admin/users/${id}/approve`}>
+              <button type="submit"
+                class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Approve
+              </button>
+            </form>
+          )}
+          {profile.status !== 'rejected' && (
+            <form method="POST" action={`/api/admin/users/${id}/reject`}>
+              <button type="submit"
+                class="rounded-md border border-destructive px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10">
+                Reject
+              </button>
+            </form>
+          )}
+          {profile.status !== 'suspended' && (
+            <form method="POST" action={`/api/admin/users/${id}/suspend`}>
+              <button type="submit"
+                class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted">
+                Suspend
+              </button>
+            </form>
+          )}
+          {profile.status === 'suspended' && (
+            <form method="POST" action={`/api/admin/users/${id}/reactivate`}>
+              <button type="submit"
+                class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted">
+                Reactivate
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
+      <!-- Basic profile fields -->
+      <dl class="mt-6 grid grid-cols-2 gap-x-6 gap-y-3 border-t pt-4 text-sm sm:grid-cols-4">
+        <div><dt class="text-muted-foreground">Phone</dt><dd class="font-medium">{display(profile.phone)}</dd></div>
+        <div><dt class="text-muted-foreground">City</dt><dd class="font-medium">{display(profile.city)}</dd></div>
+        <div><dt class="text-muted-foreground">State</dt><dd class="font-medium">{display(profile.state)}</dd></div>
+        <div><dt class="text-muted-foreground">Zip</dt><dd class="font-medium">{display(profile.zip)}</dd></div>
+        <div><dt class="text-muted-foreground">Terms accepted</dt><dd class="font-medium">{display(profile.terms_accepted)}</dd></div>
+        <div><dt class="text-muted-foreground">Joined</dt><dd class="font-medium">{fmt(profile.created_at)}</dd></div>
+      </dl>
+    </div>
+
+    <!-- Farmer profile -->
+    {isFarmer && farmerProfile && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-4 font-semibold">Farmer profile</h2>
+        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          <div><dt class="text-muted-foreground">Farming status</dt><dd>{display(farmerProfile.farming_status)}</dd></div>
+          <div><dt class="text-muted-foreground">Acreage range</dt><dd>{display(farmerProfile.farmable_acreage_range)}</dd></div>
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Plans & goals</dt><dd class="mt-0.5 whitespace-pre-wrap">{display(farmerProfile.farming_plans_and_goals)}</dd></div>
+          <div><dt class="text-muted-foreground">Counties</dt><dd>{display(farmerProfile.counties)}</dd></div>
+          <div><dt class="text-muted-foreground">Tenure options</dt><dd>{display(farmerProfile.tenure_options_desired)}</dd></div>
+          <div><dt class="text-muted-foreground">Crops</dt><dd>{display(farmerProfile.crops)}</dd></div>
+          <div><dt class="text-muted-foreground">Livestock</dt><dd>{display(farmerProfile.livestock)}</dd></div>
+          <div><dt class="text-muted-foreground">Farming methods</dt><dd>{display(farmerProfile.farming_methods)}</dd></div>
+          <div><dt class="text-muted-foreground">Infrastructure needed</dt><dd>{display(farmerProfile.infrastructure_needed)}</dd></div>
+          <div><dt class="text-muted-foreground">Business plan status</dt><dd>{display(farmerProfile.business_plan_status)}</dd></div>
+          <div><dt class="text-muted-foreground">Experience & education</dt><dd>{display(farmerProfile.experience_education)}</dd></div>
+          <div><dt class="text-muted-foreground">Referral source</dt><dd>{display(farmerProfile.referral_source)}</dd></div>
+          {farmerProfile.business_plan_summary && (
+            <div class="sm:col-span-2"><dt class="text-muted-foreground">Business plan summary</dt><dd class="mt-0.5 whitespace-pre-wrap">{farmerProfile.business_plan_summary}</dd></div>
+          )}
+        </dl>
+      </div>
+    )}
+
+    {isFarmer && !farmerProfile && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm text-sm text-muted-foreground">
+        Farmer profile not yet completed.
+      </div>
+    )}
+
+    <!-- Landowner profile -->
+    {isLandowner && landownerProfile && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-4 font-semibold">Landowner profile</h2>
+        <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div><dt class="text-muted-foreground">Referral source</dt><dd>{display(landownerProfile.referral_source)}</dd></div>
+        </dl>
+      </div>
+    )}
+
+    {isLandowner && !landownerProfile && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm text-sm text-muted-foreground">
+        Landowner profile not yet completed.
+      </div>
+    )}
+
+    <!-- Demographics (admin only) -->
+    {(farmerDemo || landownerDemo) && (
+      <div class="rounded-lg border border-dashed bg-white p-6 shadow-sm">
+        <h2 class="mb-1 font-semibold">Demographics <span class="text-xs font-normal text-muted-foreground">(confidential — admin only)</span></h2>
+        {(() => {
+          const demo = farmerDemo ?? landownerDemo;
+          return (
+            <dl class="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+              <div><dt class="text-muted-foreground">Gender</dt><dd>{display(demo?.gender)}</dd></div>
+              <div><dt class="text-muted-foreground">Age range</dt><dd>{display(demo?.age_range)}</dd></div>
+              <div><dt class="text-muted-foreground">Veteran status</dt><dd>{display(demo?.veteran_status)}</dd></div>
+              <div><dt class="text-muted-foreground">Race</dt><dd>{display(demo?.race)}</dd></div>
+              <div><dt class="text-muted-foreground">Ethnicity</dt><dd>{display(demo?.ethnicity)}</dd></div>
+              <div><dt class="text-muted-foreground">Disability</dt><dd>{display(demo?.disability_status)}</dd></div>
+            </dl>
+          );
+        })()}
+      </div>
+    )}
+
+  </div>
+</AdminLayout>

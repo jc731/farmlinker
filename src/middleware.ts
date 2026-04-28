@@ -15,7 +15,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.profile = null;
 
   const isAppRoute = pathname.startsWith('/app');
-  const isAdminRoute = pathname.startsWith('/admin');
+  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   const isAuthRoute = AUTH_ROUTES.some(r => pathname.startsWith(r));
 
   // Redirect already-authenticated users away from auth pages
