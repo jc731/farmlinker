@@ -8,7 +8,10 @@
     "preview": "astro preview",
     "astro": "astro",
     "typecheck": "astro check",
-    "supabase": "supabase"
+    "supabase": "supabase",
+    "seed:named": "tsx scripts/seed-named.ts",
+    "seed:bulk": "tsx scripts/seed-bulk.ts",
+    "seed": "tsx scripts/seed-named.ts && tsx scripts/seed-bulk.ts"
   },
   "dependencies": {
     "@astrojs/node": "^9.0.0",
@@ -32,7 +35,9 @@
     "@astrojs/check": "^0.9.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "dotenv": "^17.4.2",
     "supabase": "^2.95.5",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.0"
   },
   "pnpm": {
