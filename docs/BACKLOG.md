@@ -1,6 +1,6 @@
 # Farmlinker — Backlog
 
-Last updated: 2026-04-27
+Last updated: 2026-04-28
 
 ---
 
@@ -189,6 +189,15 @@ E1 (foundation)
 ```
 
 E5 must be done early so the admin can unblock the first test farmers and landowners to validate downstream flows.
+
+---
+
+## Cleanup / Polish Notes
+
+| Item | Priority | Notes |
+|---|---|---|
+| Remove `/auth/` prefix from auth routes | low | `/auth/sign-in` → `/sign-in`, etc. Clean URLs, no urgency |
+| Move onboarding forms from `/onboarding/*` to `/app/onboarding/*` | medium | Forms are at public path for dev preview; move and wire auth when ready |
 
 ---
 

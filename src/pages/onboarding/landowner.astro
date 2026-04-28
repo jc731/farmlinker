@@ -1,0 +1,20 @@
+---
+// Public during development — move to /app/onboarding/landowner and wire auth when ready
+import AuthLayout from '@/layouts/AuthLayout.astro';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { LandownerProfileForm } from '@/components/onboarding/LandownerProfileForm';
+---
+
+<AuthLayout title="Landowner Profile">
+  <Card>
+    <CardHeader>
+      <CardTitle>Landowner profile</CardTitle>
+      <CardDescription>
+        Just a couple of quick questions before you create your first listing.
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <LandownerProfileForm client:load />
+    </CardContent>
+  </Card>
+</AuthLayout>
