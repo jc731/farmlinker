@@ -14,29 +14,26 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.user = user;
   locals.profile = null;
 
-  const isAppRoute = pathname.startsWith('/app');
-  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
-  const isAuthRoute = AUTH_ROUTES.some(r => pathname.startsWith(r));
+  const isAppRoute    = pathname.startsWith('/app');
+  const isAdminRoute  = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+  const isAuthRoute   = AUTH_ROUTES.some(r => pathname.startsWith(r));
+  const isOnboarding  = pathname.startsWith('/app/onboarding');
 
-  // Redirect already-authenticated users away from auth pages
   if (isAuthRoute && user) {
     return redirect('/app');
   }
 
-  // Require authentication for /app and /admin
   if ((isAppRoute || isAdminRoute) && !user) {
     return redirect('/auth/sign-in');
   }
 
-  // Fetch profile for protected routes
   if ((isAppRoute || isAdminRoute) && user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, roles, status, first_name, last_name')
+      .select('id, roles, status, first_name, last_name, farmer_profiles(profile_id), landowner_profiles(profile_id)')
       .eq('id', user.id)
       .single();
 
-    // Suspended users are signed out immediately
     if (profile?.status === 'suspended') {
       await supabase.auth.signOut();
       return redirect('/auth/sign-in?error=suspended');
@@ -44,9 +41,18 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
     locals.profile = profile;
 
-    // Admin routes require the admin role
     if (isAdminRoute && !profile?.roles.includes('admin')) {
       return redirect('/app');
+    }
+
+    // Redirect to onboarding if the user hasn't completed their profile extension yet.
+    // Admins are exempt — they have no onboarding.
+    if (isAppRoute && !isOnboarding && profile && !profile.roles.includes('admin')) {
+      const needsFarmer    = profile.roles.includes('farmer')    && profile.farmer_profiles.length    === 0;
+      const needsLandowner = profile.roles.includes('landowner') && profile.landowner_profiles.length === 0;
+
+      if (needsFarmer)    return redirect('/app/onboarding/farmer');
+      if (needsLandowner) return redirect('/app/onboarding/landowner');
     }
   }
 

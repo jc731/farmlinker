@@ -143,14 +143,14 @@ export function FarmerProfileForm() {
 
     setLoading(false);
     setDone(true);
+    setTimeout(() => { window.location.href = '/app'; }, 1500);
   };
 
   if (done) {
     return (
       <Alert>
         <AlertDescription>
-          Profile saved! You'll be notified once it's reviewed.{' '}
-          <a href="/app" className="text-primary hover:underline">Go to dashboard</a>
+          Profile saved! You'll be notified once it's reviewed. Redirecting to dashboard…
         </AlertDescription>
       </Alert>
     );

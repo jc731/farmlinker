@@ -13,6 +13,8 @@ declare global {
         status: string;
         first_name: string;
         last_name: string;
+        farmer_profiles: { profile_id: string }[];
+        landowner_profiles: { profile_id: string }[];
       } | null;
     }
   }

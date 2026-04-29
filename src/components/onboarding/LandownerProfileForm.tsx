@@ -91,14 +91,14 @@ export function LandownerProfileForm() {
 
     setLoading(false);
     setDone(true);
+    setTimeout(() => { window.location.href = '/app'; }, 1500);
   };
 
   if (done) {
     return (
       <Alert>
         <AlertDescription>
-          Profile saved! Your next step is to create a listing for your land.{' '}
-          <a href="/app" className="text-primary hover:underline">Go to dashboard</a>
+          Profile saved! Your next step is to create a listing for your land. Redirecting to dashboard…
         </AlertDescription>
       </Alert>
     );
