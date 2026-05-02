@@ -15,8 +15,8 @@ Last updated: 2026-05-02
 | E5 | Admin — users | ✅ done | Review queue, approve/reject/suspend/reactivate |
 | E6 | Listings CRUD | ✅ done | Landowner creates/edits listings; approval flow |
 | E7 | Admin — listings | ✅ done | Review queue, approve/reject listings |
-| E8 | Discovery | 🔜 next | Approved farmers browse and search listings |
-| E9 | Inquiries | todo | Farmer → landowner non-realtime messaging |
+| E8 | Discovery | ✅ done | Approved farmers browse and search listings |
+| E9 | Inquiries | 🔜 next | Farmer → landowner non-realtime messaging |
 | E10 | Polish & launch prep | todo | Error states, email notifications, deploy config |
 
 ---
@@ -74,7 +74,9 @@ Last updated: 2026-05-02
 - [x] Approve / reject API routes (reject persists reason shown to landowner)
 
 ### M6 — Discovery & Inquiries
-- [ ] `/app/browse` — listing search (county, acreage, keyword filters)
+- [x] `/app/browse` — listing card grid with featured images, placeholder SVG
+- [x] `/app/browse/[id]` — listing detail with smart gallery (1/2/3+ photo layouts)
+- [ ] Search/filter on browse (county, acreage, keyword) — stretch
 - [ ] `/app/inquiries` — farmer sends inquiry on a listing
 - [ ] `/app/inquiries/[id]` — threaded message view
 - [ ] Landowner can reply; both parties see thread
