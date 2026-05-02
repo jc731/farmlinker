@@ -13,9 +13,9 @@ Last updated: 2026-05-02
 | E3 | Auth & identity | ✅ done | Supabase Auth integration, profile bootstrap |
 | E4 | Onboarding flow | ✅ done | Role-specific profile forms, wired to /app/onboarding/* |
 | E5 | Admin — users | ✅ done | Review queue, approve/reject/suspend/reactivate |
-| E6 | Listings CRUD | 🔜 next | Landowner creates/edits listings; approval flow |
-| E7 | Admin — listings | 🔜 next | Review queue, approve/reject listings |
-| E8 | Discovery | todo | Approved farmers browse and search listings |
+| E6 | Listings CRUD | ✅ done | Landowner creates/edits listings; approval flow |
+| E7 | Admin — listings | ✅ done | Review queue, approve/reject listings |
+| E8 | Discovery | 🔜 next | Approved farmers browse and search listings |
 | E9 | Inquiries | todo | Farmer → landowner non-realtime messaging |
 | E10 | Polish & launch prep | todo | Error states, email notifications, deploy config |
 
@@ -62,16 +62,16 @@ Last updated: 2026-05-02
 - [x] Fix: protect trigger now allows service-role status changes
 - [x] Dev seed: 5 named accounts + 50 bulk users (`pnpm seed`)
 
-### M5 — Listings 🔜
-- [ ] `/app/listings` — landowner's listing index (their own listings)
-- [ ] `/app/listings/new` — create listing form
-- [ ] `/app/listings/[id]/edit` — edit draft or rejected listing
-- [ ] Submit listing → `pending` status
-- [ ] `/app/listings/[id]` — listing detail page
-- [ ] Photo/media upload to Supabase Storage (up to 3 images)
-- [ ] `/admin/review/listings` — admin approval queue
-- [ ] Approve / reject listing API routes (reject requires reason)
-- [ ] Approved listings visible to approved farmers at `/app/browse`
+### M5 — Listings ✅
+- [x] `/app/listings` — landowner's listing index (all statuses)
+- [x] `/app/listings/new` — 3-step create form (saves as draft)
+- [x] `/app/listings/[id]/edit` — pre-filled edit form (draft/rejected only)
+- [x] Submit listing → `pending` status; resubmit clears rejection_reason
+- [x] `/app/listings/[id]` — detail: fields, status, rejection reason, photos
+- [x] Photo upload to Supabase Storage `listing-media` bucket (up to 3)
+- [x] `/admin/review/listings` — admin pending queue
+- [x] `/admin/listings/[id]` — full review detail with owner info and photos
+- [x] Approve / reject API routes (reject persists reason shown to landowner)
 
 ### M6 — Discovery & Inquiries
 - [ ] `/app/browse` — listing search (county, acreage, keyword filters)
