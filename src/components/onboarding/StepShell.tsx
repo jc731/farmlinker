@@ -9,12 +9,13 @@ interface Props {
   onBack?: () => void;
   onNext?: () => void;
   onSubmit?: () => void;
+  submitLabel?: string;
   loading?: boolean;
 }
 
 export function StepShell({
   step, totalSteps, title, description, children,
-  onBack, onNext, onSubmit, loading,
+  onBack, onNext, onSubmit, submitLabel = 'Submit profile', loading,
 }: Props) {
   return (
     <div className="space-y-6">
@@ -72,7 +73,7 @@ export function StepShell({
             disabled={loading}
             className="rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
           >
-            {loading ? 'Saving…' : 'Submit profile'}
+            {loading ? 'Saving…' : submitLabel}
           </button>
         )}
       </div>

@@ -1,0 +1,94 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+
+const { supabase, profile } = Astro.locals;
+
+if (!profile?.roles.includes('landowner')) {
+  return Astro.redirect('/app');
+}
+
+const { data: listings } = await supabase
+  .from('listings')
+  .select('id, property_name, county, total_acreage, farmable_acreage, status, created_at')
+  .order('created_at', { ascending: false });
+
+const STATUS_COLORS: Record<string, string> = {
+  draft:    'bg-zinc-100 text-zinc-600',
+  pending:  'bg-amber-100 text-amber-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+  archived: 'bg-zinc-100 text-zinc-500',
+};
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
+  month: 'short', day: 'numeric', year: 'numeric',
+});
+---
+
+<AppLayout title="My listings">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-2xl font-bold">My listings</h1>
+      <a
+        href="/app/listings/new"
+        class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+      >
+        + New listing
+      </a>
+    </div>
+
+    {(!listings || listings.length === 0) ? (
+      <div class="rounded-lg border bg-white p-12 text-center shadow-sm">
+        <p class="text-muted-foreground">No listings yet.</p>
+        <a
+          href="/app/listings/new"
+          class="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Create your first listing
+        </a>
+      </div>
+    ) : (
+      <div class="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <table class="w-full text-sm">
+          <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th class="px-4 py-3 text-left">Property</th>
+              <th class="px-4 py-3 text-left">County</th>
+              <th class="px-4 py-3 text-left">Acreage</th>
+              <th class="px-4 py-3 text-left">Status</th>
+              <th class="px-4 py-3 text-left">Created</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            {listings.map(l => (
+              <tr class="hover:bg-muted/20">
+                <td class="px-4 py-3 font-medium">
+                  {l.property_name ?? <span class="text-muted-foreground italic">Unnamed</span>}
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">{l.county ?? '—'}</td>
+                <td class="px-4 py-3 text-muted-foreground">
+                  {l.farmable_acreage != null ? `${l.farmable_acreage} ac farmable` : l.total_acreage != null ? `${l.total_acreage} ac total` : '—'}
+                </td>
+                <td class="px-4 py-3">
+                  <span class:list={[
+                    'rounded-full px-2 py-0.5 text-xs font-medium capitalize',
+                    STATUS_COLORS[l.status] ?? 'bg-muted text-muted-foreground',
+                  ]}>
+                    {l.status}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-muted-foreground">{fmt(l.created_at)}</td>
+                <td class="px-4 py-3">
+                  <a href={`/app/listings/${l.id}`} class="text-xs text-primary hover:underline">
+                    View →
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</AppLayout>

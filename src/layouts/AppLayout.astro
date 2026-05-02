@@ -7,7 +7,9 @@ interface Props {
 
 const { title } = Astro.props;
 const { profile } = Astro.locals;
-const isAdmin = profile?.roles.includes('admin');
+const isAdmin      = profile?.roles.includes('admin');
+const isLandowner  = profile?.roles.includes('landowner');
+const isApproved   = profile?.status === 'approved';
 ---
 
 <!doctype html>
@@ -23,9 +25,11 @@ const isAdmin = profile?.roles.includes('admin');
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <a href="/app" class="text-lg font-bold text-primary">Farmlinker</a>
         <nav class="flex items-center gap-4 text-sm">
-          {profile?.status === 'approved' && (
+          {isLandowner && (
+            <a href="/app/listings" class="text-muted-foreground hover:text-foreground">My listings</a>
+          )}
+          {isApproved && (
             <>
-              <a href="/app/listings" class="text-muted-foreground hover:text-foreground">Listings</a>
               <a href="/app/search" class="text-muted-foreground hover:text-foreground">Search</a>
               <a href="/app/inquiries" class="text-muted-foreground hover:text-foreground">Inquiries</a>
             </>

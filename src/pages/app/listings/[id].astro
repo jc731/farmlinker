@@ -1,0 +1,170 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import { MediaUpload } from '@/components/listings/MediaUpload';
+
+const { supabase, profile } = Astro.locals;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect('/app/listings');
+
+const { data: listing } = await supabase
+  .from('listings')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+if (!listing) return Astro.redirect('/app/listings');
+
+const isOwner  = listing.owner_profile_id === profile?.id;
+const canEdit  = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
+const canSubmit = isOwner && listing.status === 'draft';
+
+const STATUS_COLORS: Record<string, string> = {
+  draft:    'bg-zinc-100 text-zinc-600',
+  pending:  'bg-amber-100 text-amber-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+  archived: 'bg-zinc-100 text-zinc-500',
+};
+
+const fmt = (v: number | null) => v != null ? v.toLocaleString() : '—';
+const display = (v: string | null | undefined) => v || '—';
+const displayArr = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
+const displayBool = (v: boolean | null | undefined) =>
+  v === true ? 'Yes' : v === false ? 'No' : '—';
+---
+
+<AppLayout title={listing.property_name ?? 'Listing'}>
+  <div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    {isOwner && (
+      <nav class="text-sm text-muted-foreground">
+        <a href="/app/listings" class="hover:text-foreground">My listings</a>
+        <span class="mx-2">›</span>
+        <span>{listing.property_name ?? 'Listing'}</span>
+      </nav>
+    )}
+
+    <!-- Header -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold">{listing.property_name ?? 'Unnamed listing'}</h1>
+          <p class="text-muted-foreground">
+            {[listing.county, listing.city, listing.state].filter(Boolean).join(', ')}
+          </p>
+          <span class:list={[
+            'mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+            STATUS_COLORS[listing.status] ?? '',
+          ]}>
+            {listing.status}
+          </span>
+        </div>
+
+        {isOwner && (
+          <div class="flex flex-wrap gap-2">
+            {canEdit && (
+              <a
+                href={`/app/listings/${id}/edit`}
+                class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+              >
+                Edit
+              </a>
+            )}
+            {canSubmit && (
+              <form method="POST" action={`/api/listings/${id}/submit`}>
+                <button
+                  type="submit"
+                  class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  Submit for review
+                </button>
+              </form>
+            )}
+            {listing.status === 'pending' && (
+              <span class="rounded-md border px-4 py-2 text-sm text-muted-foreground">
+                Awaiting review
+              </span>
+            )}
+            {listing.status === 'approved' && (
+              <span class="rounded-md border border-green-300 px-4 py-2 text-sm font-medium text-green-700">
+                Live
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {listing.status === 'rejected' && listing.rejection_reason && (
+        <div class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <span class="font-medium">Rejection reason:</span> {listing.rejection_reason}
+        </div>
+      )}
+    </div>
+
+    <!-- Property details -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Property details</h2>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <div><dt class="text-muted-foreground">Total acreage</dt><dd class="font-medium">{fmt(listing.total_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Farmable acreage</dt><dd class="font-medium">{fmt(listing.farmable_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Natural area</dt><dd class="font-medium">{fmt(listing.natural_area_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">County</dt><dd class="font-medium">{display(listing.county)}</dd></div>
+        <div><dt class="text-muted-foreground">City</dt><dd class="font-medium">{display(listing.city)}</dd></div>
+        <div><dt class="text-muted-foreground">Zip</dt><dd class="font-medium">{display(listing.zip)}</dd></div>
+        <div><dt class="text-muted-foreground">Certified organic / eligible</dt><dd class="font-medium">{displayBool(listing.certified_organic_or_eligible)}</dd></div>
+        <div><dt class="text-muted-foreground">Zoning appropriate</dt><dd class="font-medium">{displayBool(listing.zoning_appropriate)}</dd></div>
+        <div><dt class="text-muted-foreground">Conservation easement</dt><dd class="font-medium">{displayBool(listing.conservation_easement)}</dd></div>
+        <div><dt class="text-muted-foreground">Public access</dt><dd class="font-medium">{displayBool(listing.public_access_allowed)}</dd></div>
+      </dl>
+    </div>
+
+    <!-- Land use -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Land use</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Infrastructure</dt><dd>{displayArr(listing.infrastructure_available)}</dd></div>
+        <div><dt class="text-muted-foreground">Crops permitted</dt><dd>{displayArr(listing.crops_permitted)}</dd></div>
+        <div><dt class="text-muted-foreground">Livestock permitted</dt><dd>{displayArr(listing.livestock_permitted)}</dd></div>
+        <div><dt class="text-muted-foreground">Preferred methods</dt><dd>{displayArr(listing.preferred_farming_methods)}</dd></div>
+        {listing.infrastructure_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Infrastructure notes</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.infrastructure_notes}</dd></div>
+        )}
+        {listing.crops_livestock_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Crops / livestock notes</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.crops_livestock_notes}</dd></div>
+        )}
+      </dl>
+    </div>
+
+    <!-- Lease terms -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Lease terms</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Tenure options</dt><dd>{displayArr(listing.tenure_options_offered)}</dd></div>
+        <div><dt class="text-muted-foreground">Availability</dt><dd>{display(listing.tenure_availability_timing)}</dd></div>
+        {listing.tenure_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Lease notes</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.tenure_notes}</dd></div>
+        )}
+        {listing.stewardship_values && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Stewardship values</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.stewardship_values}</dd></div>
+        )}
+        {listing.property_history_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Property history</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.property_history_notes}</dd></div>
+        )}
+      </dl>
+    </div>
+
+    <!-- Photos -->
+    {isOwner && (canEdit || listing.status === 'pending') && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-4 font-semibold">Photos</h2>
+        <p class="mb-4 text-sm text-muted-foreground">
+          Photos can be added or changed while your listing is a draft. They'll be reviewed along with your listing.
+        </p>
+        <MediaUpload client:load listingId={id} />
+      </div>
+    )}
+
+  </div>
+</AppLayout>

@@ -1,0 +1,44 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import { ListingForm } from '@/components/listings/ListingForm';
+
+const { supabase, profile } = Astro.locals;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect('/app/listings');
+
+const { data: listing } = await supabase
+  .from('listings')
+  .select('*')
+  .eq('id', id)
+  .eq('owner_profile_id', profile?.id)
+  .single();
+
+// Not found, not owner, or not in an editable state
+if (!listing || (listing.status !== 'draft' && listing.status !== 'rejected')) {
+  return Astro.redirect(`/app/listings/${id}`);
+}
+---
+
+<AppLayout title="Edit listing">
+  <div class="mx-auto max-w-2xl space-y-6">
+    <div>
+      <nav class="mb-2 text-sm text-muted-foreground">
+        <a href="/app/listings" class="hover:text-foreground">My listings</a>
+        <span class="mx-2">›</span>
+        <a href={`/app/listings/${id}`} class="hover:text-foreground">
+          {listing.property_name ?? 'Listing'}
+        </a>
+        <span class="mx-2">›</span>
+        <span>Edit</span>
+      </nav>
+      <h1 class="text-2xl font-bold">Edit listing</h1>
+      {listing.status === 'rejected' && (
+        <p class="mt-1 text-sm text-muted-foreground">
+          Address the feedback below, then resubmit for review.
+        </p>
+      )}
+    </div>
+    <ListingForm client:load listing={listing} />
+  </div>
+</AppLayout>
