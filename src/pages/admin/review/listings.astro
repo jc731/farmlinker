@@ -1,0 +1,87 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const admin = createSupabaseAdminClient();
+
+const { data: pending } = await admin
+  .from('listings')
+  .select('id, property_name, county, city, total_acreage, farmable_acreage, created_at, owner_profile_id, profiles(first_name, last_name, email)')
+  .eq('status', 'pending')
+  .order('created_at', { ascending: true });
+
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
+  month: 'short', day: 'numeric', year: 'numeric',
+});
+---
+
+<AdminLayout title="Pending listings">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Pending listings</h1>
+        <p class="text-sm text-muted-foreground">{pending?.length ?? 0} awaiting review</p>
+      </div>
+      <a href="/admin/users" class="text-sm text-primary hover:underline">All users →</a>
+    </div>
+
+    {(!pending || pending.length === 0) && (
+      <div class="rounded-lg border bg-white p-12 text-center text-muted-foreground shadow-sm">
+        No pending listings — you're all caught up.
+      </div>
+    )}
+
+    {pending && pending.length > 0 && (
+      <div class="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <table class="w-full text-sm">
+          <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th class="px-4 py-3 text-left">Property</th>
+              <th class="px-4 py-3 text-left">Owner</th>
+              <th class="px-4 py-3 text-left">County</th>
+              <th class="px-4 py-3 text-left">Acreage</th>
+              <th class="px-4 py-3 text-left">Submitted</th>
+              <th class="px-4 py-3 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            {pending.map(l => {
+              const owner = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
+              return (
+                <tr class="hover:bg-muted/20">
+                  <td class="px-4 py-3 font-medium">
+                    <a href={`/admin/listings/${l.id}`} class="hover:text-primary hover:underline">
+                      {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
+                    </a>
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">
+                    {owner ? `${owner.first_name} ${owner.last_name}` : '—'}
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">{l.county ?? '—'}</td>
+                  <td class="px-4 py-3 text-muted-foreground">
+                    {l.farmable_acreage != null ? `${l.farmable_acreage} ac` : l.total_acreage != null ? `${l.total_acreage} ac` : '—'}
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">{fmt(l.created_at)}</td>
+                  <td class="px-4 py-3">
+                    <div class="flex gap-2">
+                      <form method="POST" action={`/api/admin/listings/${l.id}/approve`}>
+                        <button type="submit"
+                          class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                          Approve
+                        </button>
+                      </form>
+                      <a href={`/admin/listings/${l.id}`}
+                        class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
+                        Review
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</AdminLayout>

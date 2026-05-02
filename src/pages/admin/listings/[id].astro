@@ -1,0 +1,188 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/review/listings');
+
+const admin = createSupabaseAdminClient();
+
+const [{ data: listing }, { data: media }] = await Promise.all([
+  admin.from('listings')
+    .select('*, profiles(id, first_name, last_name, email, phone, city, state)')
+    .eq('id', id)
+    .single(),
+  admin.from('listing_media')
+    .select('id, storage_path, type, sort_order')
+    .eq('listing_id', id)
+    .order('sort_order'),
+]);
+
+if (!listing) return Astro.redirect('/admin/review/listings');
+
+const owner = Array.isArray(listing.profiles) ? listing.profiles[0] : listing.profiles;
+
+const STATUS_COLORS: Record<string, string> = {
+  draft:    'bg-zinc-100 text-zinc-600',
+  pending:  'bg-amber-100 text-amber-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+  archived: 'bg-zinc-100 text-zinc-500',
+};
+
+const display    = (v: string | null | undefined) => v || '—';
+const displayArr = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
+const displayBool = (v: boolean | null | undefined) =>
+  v === true ? 'Yes' : v === false ? 'No' : '—';
+const fmt = (v: number | null) => v != null ? v.toLocaleString() : '—';
+
+---
+
+<AdminLayout title={listing.property_name ?? 'Listing review'}>
+  <div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-muted-foreground">
+      <a href="/admin/review/listings" class="hover:text-foreground">Pending listings</a>
+      <span class="mx-2">›</span>
+      <span>{listing.property_name ?? 'Unnamed listing'}</span>
+    </nav>
+
+    <!-- Header + actions -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold">{listing.property_name ?? 'Unnamed listing'}</h1>
+          <p class="text-muted-foreground">
+            {[listing.county, listing.city, listing.state].filter(Boolean).join(', ')}
+          </p>
+          <span class:list={[
+            'mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+            STATUS_COLORS[listing.status] ?? '',
+          ]}>
+            {listing.status}
+          </span>
+        </div>
+
+        {listing.status === 'pending' && (
+          <div class="flex flex-wrap gap-2">
+            <form method="POST" action={`/api/admin/listings/${id}/approve`}>
+              <button type="submit"
+                class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                Approve
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      <!-- Owner info -->
+      {owner && (
+        <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t pt-4 text-sm sm:grid-cols-4">
+          <div>
+            <dt class="text-muted-foreground">Owner</dt>
+            <dd class="font-medium">
+              <a href={`/admin/users/${owner.id}`} class="text-primary hover:underline">
+                {owner.first_name} {owner.last_name}
+              </a>
+            </dd>
+          </div>
+          <div><dt class="text-muted-foreground">Email</dt><dd>{owner.email}</dd></div>
+          <div><dt class="text-muted-foreground">Phone</dt><dd>{display(owner.phone)}</dd></div>
+          <div><dt class="text-muted-foreground">Location</dt><dd>{[owner.city, owner.state].filter(Boolean).join(', ') || '—'}</dd></div>
+        </dl>
+      )}
+    </div>
+
+    <!-- Property details -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Property details</h2>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+        <div><dt class="text-muted-foreground">Total acreage</dt><dd>{fmt(listing.total_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Farmable</dt><dd>{fmt(listing.farmable_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Natural area</dt><dd>{fmt(listing.natural_area_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Certified organic / eligible</dt><dd>{displayBool(listing.certified_organic_or_eligible)}</dd></div>
+        <div><dt class="text-muted-foreground">Zoning appropriate</dt><dd>{displayBool(listing.zoning_appropriate)}</dd></div>
+        <div><dt class="text-muted-foreground">Conservation easement</dt><dd>{displayBool(listing.conservation_easement)}</dd></div>
+        <div><dt class="text-muted-foreground">Public access</dt><dd>{displayBool(listing.public_access_allowed)}</dd></div>
+      </dl>
+    </div>
+
+    <!-- Land use -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Land use</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Infrastructure</dt><dd>{displayArr(listing.infrastructure_available)}</dd></div>
+        <div><dt class="text-muted-foreground">Crops permitted</dt><dd>{displayArr(listing.crops_permitted)}</dd></div>
+        <div><dt class="text-muted-foreground">Livestock permitted</dt><dd>{displayArr(listing.livestock_permitted)}</dd></div>
+        <div><dt class="text-muted-foreground">Preferred methods</dt><dd>{displayArr(listing.preferred_farming_methods)}</dd></div>
+        {listing.infrastructure_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Infrastructure notes</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.infrastructure_notes}</dd></div>
+        )}
+        {listing.crops_livestock_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Crops / livestock notes</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.crops_livestock_notes}</dd></div>
+        )}
+      </dl>
+    </div>
+
+    <!-- Lease terms -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Lease terms & values</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+        <div><dt class="text-muted-foreground">Tenure options</dt><dd>{displayArr(listing.tenure_options_offered)}</dd></div>
+        <div><dt class="text-muted-foreground">Availability</dt><dd>{display(listing.tenure_availability_timing)}</dd></div>
+        {listing.tenure_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Lease notes</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.tenure_notes}</dd></div>
+        )}
+        {listing.stewardship_values && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Stewardship values</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.stewardship_values}</dd></div>
+        )}
+        {listing.property_history_notes && (
+          <div class="sm:col-span-2"><dt class="text-muted-foreground">Property history</dt><dd class="mt-0.5 whitespace-pre-wrap">{listing.property_history_notes}</dd></div>
+        )}
+      </dl>
+    </div>
+
+    <!-- Photos -->
+    {media && media.length > 0 && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-4 font-semibold">Photos ({media.length})</h2>
+        <div class="grid grid-cols-3 gap-3">
+          {media.map(m => (
+            <div class="aspect-video overflow-hidden rounded-md border bg-muted">
+              <img
+                src={`${import.meta.env.PUBLIC_SUPABASE_URL}/storage/v1/object/authenticated/listing-media/${m.storage_path}`}
+                alt="Listing photo"
+                class="h-full w-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    <!-- Reject form (only when pending) -->
+    {listing.status === 'pending' && (
+      <div class="rounded-lg border border-dashed bg-white p-6 shadow-sm">
+        <h2 class="mb-1 font-semibold text-destructive">Reject listing</h2>
+        <p class="mb-4 text-sm text-muted-foreground">
+          Provide a clear reason so the landowner knows what to fix before resubmitting.
+        </p>
+        <form method="POST" action={`/api/admin/listings/${id}/reject`} class="space-y-3">
+          <textarea
+            name="reason"
+            required
+            rows={3}
+            placeholder="e.g. Missing tenure options. Please specify at least one lease arrangement and resubmit."
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          ></textarea>
+          <button type="submit"
+            class="rounded-md border border-destructive px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10">
+            Reject listing
+          </button>
+        </form>
+      </div>
+    )}
+
+  </div>
+</AdminLayout>
