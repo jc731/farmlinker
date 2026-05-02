@@ -1,0 +1,267 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const { supabase } = Astro.locals;
+const { id } = Astro.params;
+
+if (!id) return Astro.redirect('/app/browse');
+
+const [{ data: listing }, { data: rawMedia }] = await Promise.all([
+  supabase.from('listings').select('*').eq('id', id).eq('status', 'approved').single(),
+  supabase.from('listing_media').select('id, storage_path, sort_order')
+    .eq('listing_id', id).order('sort_order'),
+]);
+
+if (!listing) return Astro.redirect('/app/browse');
+
+// Batch-sign all photo URLs in one storage call
+type Photo = { id: string; storage_path: string; sort_order: number; url: string };
+let photos: Photo[] = [];
+
+if (rawMedia && rawMedia.length > 0) {
+  const admin = createSupabaseAdminClient();
+  const { data: signed } = await admin.storage
+    .from('listing-media')
+    .createSignedUrls(rawMedia.map(m => m.storage_path), 3600);
+
+  const signedMap = Object.fromEntries(
+    (signed ?? []).filter(s => s.signedUrl).map(s => [s.path, s.signedUrl!])
+  );
+
+  photos = rawMedia
+    .map(m => ({ ...m, url: signedMap[m.storage_path] ?? '' }))
+    .filter(m => m.url);
+}
+
+const hasPhotos   = photos.length > 0;
+const displayArr  = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
+const displayBool = (v: boolean | null | undefined) =>
+  v === true ? 'Yes' : v === false ? 'No' : '—';
+const fmt = (v: number | null) => v != null ? v.toLocaleString() : null;
+---
+
+<AppLayout title={listing.property_name ?? 'Listing'}>
+  <div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-muted-foreground">
+      <a href="/app/browse" class="hover:text-foreground">Browse</a>
+      <span class="mx-2">›</span>
+      <span>{listing.property_name ?? 'Listing'}</span>
+    </nav>
+
+    <!-- Photo gallery -->
+    {hasPhotos ? (
+      <div class:list={[
+        'overflow-hidden rounded-xl',
+        photos.length === 1 && 'aspect-video',
+        photos.length === 2 && 'grid grid-cols-2 gap-1.5',
+        photos.length >= 3 && 'grid gap-1.5',
+      ]}
+      style={photos.length >= 3 ? 'grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr;' : ''}
+      >
+        {photos.length === 1 && (
+          <img
+            src={photos[0].url}
+            alt={listing.property_name ?? 'Listing photo'}
+            class="h-full w-full rounded-xl object-cover"
+          />
+        )}
+        {photos.length === 2 && photos.map((p, i) => (
+          <div class:list={['overflow-hidden', i === 0 ? 'rounded-l-xl' : 'rounded-r-xl']}>
+            <img src={p.url} alt="" class="h-full w-full object-cover aspect-video" />
+          </div>
+        ))}
+        {photos.length >= 3 && (
+          <>
+            <div class="row-span-2 overflow-hidden rounded-l-xl" style="max-height: 420px;">
+              <img src={photos[0].url} alt="" class="h-full w-full object-cover" />
+            </div>
+            <div class="overflow-hidden rounded-tr-xl">
+              <img src={photos[1].url} alt="" class="h-full w-full object-cover aspect-video" />
+            </div>
+            <div class="overflow-hidden rounded-br-xl">
+              <img src={photos[2].url} alt="" class="h-full w-full object-cover aspect-video" />
+            </div>
+          </>
+        )}
+      </div>
+    ) : (
+      <div class="flex aspect-video flex-col items-center justify-center gap-4 rounded-xl bg-gradient-to-br from-primary/8 to-primary/3">
+        <svg viewBox="0 0 80 55" xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-primary/25" aria-hidden="true">
+          <circle cx="62" cy="14" r="9" fill="currentColor" opacity="0.5"/>
+          <ellipse cx="80" cy="50" rx="55" ry="22" fill="currentColor" opacity="0.25"/>
+          <ellipse cx="20" cy="55" rx="40" ry="18" fill="currentColor" opacity="0.4"/>
+          <line x1="35" y1="42" x2="35" y2="26" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+          <ellipse cx="35" cy="23" rx="3" ry="7" fill="currentColor" opacity="0.45"/>
+          <line x1="44" y1="44" x2="44" y2="30" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+          <ellipse cx="44" cy="27" rx="3" ry="7" fill="currentColor" opacity="0.45"/>
+          <line x1="26" y1="45" x2="26" y2="32" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+          <ellipse cx="26" cy="29" rx="3" ry="6" fill="currentColor" opacity="0.45"/>
+        </svg>
+        <p class="text-sm font-medium text-primary/40">No photos uploaded yet</p>
+      </div>
+    )}
+
+    <!-- Header -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="space-y-1">
+          <h1 class="text-2xl font-bold">{listing.property_name ?? 'Unnamed property'}</h1>
+          <p class="text-muted-foreground">
+            {[listing.county ? `${listing.county} County` : null, listing.city, listing.state]
+              .filter(Boolean).join(', ')}
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            {listing.certified_organic_or_eligible && (
+              <span class="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                Certified organic / eligible
+              </span>
+            )}
+            {listing.conservation_easement && (
+              <span class="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                Conservation easement
+              </span>
+            )}
+          </div>
+        </div>
+
+        <!-- Inquiry CTA — placeholder until E9 -->
+        <div class="shrink-0">
+          <button
+            disabled
+            class="w-full rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground opacity-60 sm:w-auto"
+            title="Inquiries coming soon"
+          >
+            Send inquiry
+          </button>
+          <p class="mt-1 text-center text-xs text-muted-foreground">Coming soon</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key stats strip -->
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {fmt(listing.total_acreage) && (
+        <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
+          <div class="text-2xl font-bold">{fmt(listing.total_acreage)}</div>
+          <div class="text-xs text-muted-foreground">Total acres</div>
+        </div>
+      )}
+      {fmt(listing.farmable_acreage) && (
+        <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
+          <div class="text-2xl font-bold">{fmt(listing.farmable_acreage)}</div>
+          <div class="text-xs text-muted-foreground">Farmable acres</div>
+        </div>
+      )}
+      {fmt(listing.natural_area_acreage) && (
+        <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
+          <div class="text-2xl font-bold">{fmt(listing.natural_area_acreage)}</div>
+          <div class="text-xs text-muted-foreground">Natural area acres</div>
+        </div>
+      )}
+      {listing.tenure_availability_timing && (
+        <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
+          <div class="text-sm font-bold leading-tight">{listing.tenure_availability_timing}</div>
+          <div class="text-xs text-muted-foreground">Availability</div>
+        </div>
+      )}
+    </div>
+
+    <!-- Land use -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">What's available</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+        {(listing.infrastructure_available as string[] ?? []).length > 0 && (
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Infrastructure</dt>
+            <dd class="mt-1">{displayArr(listing.infrastructure_available)}</dd>
+          </div>
+        )}
+        {(listing.crops_permitted as string[] ?? []).length > 0 && (
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crops permitted</dt>
+            <dd class="mt-1">{displayArr(listing.crops_permitted)}</dd>
+          </div>
+        )}
+        {(listing.livestock_permitted as string[] ?? []).length > 0 && (
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Livestock permitted</dt>
+            <dd class="mt-1">{displayArr(listing.livestock_permitted)}</dd>
+          </div>
+        )}
+        {(listing.preferred_farming_methods as string[] ?? []).length > 0 && (
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preferred methods</dt>
+            <dd class="mt-1">{displayArr(listing.preferred_farming_methods)}</dd>
+          </div>
+        )}
+        {listing.infrastructure_notes && (
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Infrastructure notes</dt>
+            <dd class="mt-1 whitespace-pre-wrap">{listing.infrastructure_notes}</dd>
+          </div>
+        )}
+        {listing.crops_livestock_notes && (
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Crops / livestock notes</dt>
+            <dd class="mt-1 whitespace-pre-wrap">{listing.crops_livestock_notes}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+
+    <!-- Lease terms -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-4 font-semibold">Lease terms</h2>
+      <dl class="grid grid-cols-1 gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+        {(listing.tenure_options_offered as string[] ?? []).length > 0 && (
+          <div>
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Arrangements offered</dt>
+            <dd class="mt-1.5 flex flex-wrap gap-1.5">
+              {(listing.tenure_options_offered as string[]).map(t => (
+                <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">{t}</span>
+              ))}
+            </dd>
+          </div>
+        )}
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Zoning</dt>
+          <dd class="mt-1">{displayBool(listing.zoning_appropriate)} for farming</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Public access</dt>
+          <dd class="mt-1">{displayBool(listing.public_access_allowed)}</dd>
+        </div>
+        {listing.tenure_notes && (
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lease notes</dt>
+            <dd class="mt-1 whitespace-pre-wrap">{listing.tenure_notes}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+
+    <!-- Stewardship (if provided) -->
+    {listing.stewardship_values && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-3 font-semibold">What the landowner is looking for</h2>
+        <p class="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+          {listing.stewardship_values}
+        </p>
+      </div>
+    )}
+
+    <!-- Property history (if provided) -->
+    {listing.property_history_notes && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-3 font-semibold">Property history</h2>
+        <p class="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
+          {listing.property_history_notes}
+        </p>
+      </div>
+    )}
+
+  </div>
+</AppLayout>

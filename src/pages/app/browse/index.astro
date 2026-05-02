@@ -1,0 +1,146 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const { supabase } = Astro.locals;
+
+// Fetch approved listings with their media (RLS: authenticated see approved)
+const { data: listings } = await supabase
+  .from('listings')
+  .select(`
+    id, property_name, county, city, state,
+    total_acreage, farmable_acreage,
+    tenure_options_offered, certified_organic_or_eligible,
+    listing_media ( id, storage_path, sort_order )
+  `)
+  .eq('status', 'approved')
+  .order('created_at', { ascending: false });
+
+// Collect one featured image path per listing (lowest sort_order wins)
+type MediaItem = { id: string; storage_path: string; sort_order: number };
+const featuredPaths: string[] = [];
+const listingFeatured: Record<string, string> = {}; // listing.id → storage_path
+
+for (const l of listings ?? []) {
+  const sorted = [...((l.listing_media as MediaItem[]) ?? [])].sort(
+    (a, b) => a.sort_order - b.sort_order
+  );
+  const first = sorted[0];
+  if (first?.storage_path) {
+    featuredPaths.push(first.storage_path);
+    listingFeatured[l.id] = first.storage_path;
+  }
+}
+
+// Batch-sign all featured image paths in one call
+const signedMap: Record<string, string> = {};
+if (featuredPaths.length > 0) {
+  const admin = createSupabaseAdminClient();
+  const { data: signed } = await admin.storage
+    .from('listing-media')
+    .createSignedUrls(featuredPaths, 3600);
+  for (const s of signed ?? []) {
+    if (s.signedUrl && s.path) signedMap[s.path] = s.signedUrl;
+  }
+}
+
+const count = listings?.length ?? 0;
+---
+
+<AppLayout title="Browse listings">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Browse farmland</h1>
+        <p class="text-sm text-muted-foreground">{count} listing{count !== 1 ? 's' : ''} available</p>
+      </div>
+    </div>
+
+    {count === 0 ? (
+      <div class="rounded-lg border bg-white p-16 text-center text-muted-foreground shadow-sm">
+        No approved listings yet — check back soon.
+      </div>
+    ) : (
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {(listings ?? []).map(l => {
+          const featuredPath = listingFeatured[l.id];
+          const imgUrl = featuredPath ? signedMap[featuredPath] : null;
+          const acreage = l.farmable_acreage ?? l.total_acreage;
+          const tenure  = (l.tenure_options_offered as string[] ?? []).slice(0, 2);
+
+          return (
+            <a
+              href={`/app/browse/${l.id}`}
+              class="group block overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md"
+            >
+              <!-- Featured image / placeholder -->
+              <div class="relative aspect-video overflow-hidden bg-muted">
+                {imgUrl ? (
+                  <img
+                    src={imgUrl}
+                    alt={l.property_name ?? 'Listing photo'}
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="flex h-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary/8 to-primary/3">
+                    <svg viewBox="0 0 80 55" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-primary/30" aria-hidden="true">
+                      {/* Sun */}
+                      <circle cx="62" cy="14" r="9" fill="currentColor" opacity="0.5"/>
+                      {/* Far hill */}
+                      <ellipse cx="80" cy="50" rx="55" ry="22" fill="currentColor" opacity="0.25"/>
+                      {/* Near hill */}
+                      <ellipse cx="20" cy="55" rx="40" ry="18" fill="currentColor" opacity="0.4"/>
+                      {/* Wheat stalks */}
+                      <line x1="35" y1="42" x2="35" y2="26" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                      <ellipse cx="35" cy="23" rx="3" ry="7" fill="currentColor" opacity="0.45"/>
+                      <line x1="44" y1="44" x2="44" y2="30" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                      <ellipse cx="44" cy="27" rx="3" ry="7" fill="currentColor" opacity="0.45"/>
+                      <line x1="26" y1="45" x2="26" y2="32" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
+                      <ellipse cx="26" cy="29" rx="3" ry="6" fill="currentColor" opacity="0.45"/>
+                    </svg>
+                    <span class="text-xs font-medium text-primary/40">No photos yet</span>
+                  </div>
+                )}
+                {l.certified_organic_or_eligible && (
+                  <span class="absolute left-2 top-2 rounded-full bg-green-700/90 px-2 py-0.5 text-xs font-medium text-white">
+                    Organic
+                  </span>
+                )}
+              </div>
+
+              <!-- Card body -->
+              <div class="p-4 space-y-1.5">
+                <h3 class="font-semibold leading-tight">
+                  {l.property_name ?? <span class="italic text-muted-foreground">Unnamed property</span>}
+                </h3>
+                <p class="text-sm text-muted-foreground">
+                  {[l.county ? `${l.county} County` : null, l.city, l.state].filter(Boolean).join(', ')}
+                </p>
+                {acreage != null && (
+                  <p class="text-sm font-medium">
+                    {acreage.toLocaleString()} {l.farmable_acreage != null ? 'farmable' : 'total'} acres
+                  </p>
+                )}
+                {tenure.length > 0 && (
+                  <div class="flex flex-wrap gap-1 pt-0.5">
+                    {tenure.map(t => (
+                      <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        {t}
+                      </span>
+                    ))}
+                    {(l.tenure_options_offered as string[] ?? []).length > 2 && (
+                      <span class="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                        +{(l.tenure_options_offered as string[]).length - 2} more
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    )}
+  </div>
+</AppLayout>
