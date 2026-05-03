@@ -1,0 +1,166 @@
+---
+// Only renders in development. Import this in layouts and wrap with import.meta.env.DEV.
+const { profile } = Astro.locals;
+const pathname = new URL(Astro.request.url).pathname;
+
+const ACCOUNTS = [
+  { email: 'admin@farmlinker.dev',             label: 'admin',    tag: 'admin',    color: 'text-violet-400' },
+  { email: 'farmer-approved@farmlinker.dev',   label: 'farmer ✓', tag: 'farmer',   color: 'text-emerald-400' },
+  { email: 'farmer-pending@farmlinker.dev',    label: 'farmer ↓', tag: 'farmer',   color: 'text-yellow-400' },
+  { email: 'landowner-approved@farmlinker.dev',label: 'owner ✓',  tag: 'landowner',color: 'text-sky-400' },
+  { email: 'landowner-pending@farmlinker.dev', label: 'owner ↓',  tag: 'landowner',color: 'text-yellow-400' },
+] as const;
+
+// Identify which named account is currently active
+let currentEmail: string | null = null;
+if (profile) {
+  const { data } = await Astro.locals.supabase.auth.getUser();
+  currentEmail = data.user?.email ?? null;
+}
+---
+
+<div id="dev-toolbar" class="fixed bottom-0 left-0 right-0 z-[9999] flex items-stretch border-t border-white/10 bg-zinc-950 font-mono text-xs text-zinc-400">
+
+  <!-- Toggle -->
+  <button
+    id="dev-toggle"
+    class="shrink-0 border-r border-white/10 px-2.5 py-1.5 text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
+    title="Toggle dev toolbar"
+    aria-label="Toggle dev toolbar"
+  >
+    <span id="dev-toggle-icon">▲</span>
+  </button>
+
+  <!-- DEV badge -->
+  <div class="flex items-center border-r border-white/10 px-2.5 py-1.5">
+    <span class="rounded bg-fuchsia-700 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">dev</span>
+  </div>
+
+  <!-- Breakpoint indicator (pure CSS) -->
+  <div class="flex items-center border-r border-white/10 px-2.5 py-1.5">
+    <span class="font-bold text-yellow-400">
+      <span class="sm:hidden">xs</span>
+      <span class="hidden sm:inline md:hidden">sm</span>
+      <span class="hidden md:inline lg:hidden">md</span>
+      <span class="hidden lg:inline xl:hidden">lg</span>
+      <span class="hidden xl:inline 2xl:hidden">xl</span>
+      <span class="hidden 2xl:inline">2xl</span>
+    </span>
+  </div>
+
+  <!-- Scrollable main area -->
+  <div id="dev-toolbar-body" class="flex min-w-0 flex-1 items-center gap-px overflow-x-auto">
+
+    <!-- Current user -->
+    <div class="flex shrink-0 items-center gap-2 border-r border-white/10 px-3 py-1.5">
+      {profile ? (
+        <>
+          <span class="text-white">{profile.first_name} {profile.last_name}</span>
+          <span class="text-zinc-500">·</span>
+          <span class="text-zinc-400">{profile.roles.join(', ')}</span>
+          <span class="text-zinc-600">/</span>
+          <span class:list={[
+            profile.status === 'approved' ? 'text-emerald-400' :
+            profile.status === 'pending'  ? 'text-yellow-400' :
+            'text-red-400'
+          ]}>
+            {profile.status}
+          </span>
+        </>
+      ) : (
+        <span class="text-zinc-600">not signed in</span>
+      )}
+    </div>
+
+    <!-- Quick-switch buttons -->
+    <div class="flex shrink-0 items-center gap-px px-2">
+      {ACCOUNTS.map(acct => {
+        const isActive = currentEmail === acct.email;
+        return (
+          <button
+            type="button"
+            data-dev-switch={acct.email}
+            class:list={[
+              'rounded px-2 py-1 transition-colors',
+              isActive
+                ? `${acct.color} bg-white/10 font-semibold`
+                : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-200',
+            ]}
+          >
+            {acct.label}
+          </button>
+        );
+      })}
+    </div>
+
+    <!-- Path -->
+    <div class="hidden shrink-0 items-center border-l border-white/10 px-3 py-1.5 text-zinc-600 sm:flex">
+      {pathname}
+    </div>
+
+  </div>
+
+  <!-- Sign out -->
+  {profile && (
+    <button
+      type="button"
+      id="dev-signout"
+      class="shrink-0 border-l border-white/10 px-3 py-1.5 text-zinc-500 transition-colors hover:bg-red-950 hover:text-red-400"
+    >
+      sign out
+    </button>
+  )}
+
+</div>
+
+<!-- Spacer so content doesn't hide under toolbar -->
+<div class="h-8"></div>
+
+<script>
+  import { supabase } from '@/lib/supabase/client';
+
+  // Toggle collapse
+  const toggleBtn   = document.getElementById('dev-toggle');
+  const toggleIcon  = document.getElementById('dev-toggle-icon');
+  const toolbarBody = document.getElementById('dev-toolbar-body');
+
+  let collapsed = localStorage.getItem('dev-toolbar-collapsed') === '1';
+  function applyCollapse() {
+    if (collapsed) {
+      toolbarBody?.classList.add('hidden');
+      if (toggleIcon) toggleIcon.textContent = '▼';
+    } else {
+      toolbarBody?.classList.remove('hidden');
+      if (toggleIcon) toggleIcon.textContent = '▲';
+    }
+  }
+  applyCollapse();
+
+  toggleBtn?.addEventListener('click', () => {
+    collapsed = !collapsed;
+    localStorage.setItem('dev-toolbar-collapsed', collapsed ? '1' : '0');
+    applyCollapse();
+  });
+
+  // Quick-switch
+  document.querySelectorAll<HTMLButtonElement>('[data-dev-switch]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const email = btn.dataset.devSwitch!;
+      btn.textContent = '…';
+      btn.disabled = true;
+      const { error } = await supabase.auth.signInWithPassword({ email, password: 'devpass123' });
+      if (error) {
+        btn.textContent = 'err';
+        setTimeout(() => location.reload(), 800);
+      } else {
+        location.reload();
+      }
+    });
+  });
+
+  // Sign out
+  document.getElementById('dev-signout')?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    location.href = '/auth/sign-in';
+  });
+</script>
