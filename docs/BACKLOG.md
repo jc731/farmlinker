@@ -16,8 +16,8 @@ Last updated: 2026-05-02
 | E6 | Listings CRUD | ✅ done | Landowner creates/edits listings; approval flow |
 | E7 | Admin — listings | ✅ done | Review queue, approve/reject listings |
 | E8 | Discovery | ✅ done | Approved farmers browse and search listings |
-| E9 | Inquiries | 🔜 next | Farmer → landowner non-realtime messaging |
-| E10 | Polish & launch prep | todo | Error states, email notifications, deploy config |
+| E9 | Inquiries | ✅ done | Farmer → landowner non-realtime messaging |
+| E10 | Polish & launch prep | 🔜 next | Error states, email notifications, deploy config |
 
 ---
 
@@ -77,10 +77,11 @@ Last updated: 2026-05-02
 - [x] `/app/browse` — listing card grid with featured images, placeholder SVG
 - [x] `/app/browse/[id]` — listing detail with smart gallery (1/2/3+ photo layouts)
 - [ ] Search/filter on browse (county, acreage, keyword) — stretch
-- [ ] `/app/inquiries` — farmer sends inquiry on a listing
-- [ ] `/app/inquiries/[id]` — threaded message view
-- [ ] Landowner can reply; both parties see thread
-- [ ] Inquiry status: open / closed / blocked
+- [x] `/app/inquiries` — farmer sends inquiry on a listing
+- [x] `/app/inquiries/[id]` — threaded message view
+- [x] Landowner can reply; both parties see thread
+- [x] Inquiry status: open / closed / blocked
+- [x] Admin can view all threads, send messages, block inquiries
 
 ### M7 — Polish & Deploy
 - [ ] 404 and error pages

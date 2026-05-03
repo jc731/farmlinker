@@ -7,9 +7,10 @@ pnpm dev          # dev server → localhost:4321
 pnpm build        # production build
 pnpm typecheck    # astro check (run before committing)
 pnpm supabase     # supabase CLI
-pnpm seed:named   # create/skip 5 named dev accounts
-pnpm seed:bulk    # create/skip 50 randomized seed users
-pnpm seed         # both of the above
+pnpm seed:named    # create/skip 5 named dev accounts
+pnpm seed:bulk     # create/skip 50 randomized seed users
+pnpm seed:listings # create/skip ~22 approved listings for approved landowners
+pnpm seed          # all three of the above
 ```
 
 ## Stack
