@@ -2,10 +2,13 @@
 import AppLayout from '@/layouts/AppLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
-const { supabase } = Astro.locals;
+const { supabase, profile } = Astro.locals;
 const { id } = Astro.params;
 
 if (!id) return Astro.redirect('/app/browse');
+
+const isFarmer   = profile?.roles.includes('farmer') ?? false;
+const isApproved = profile?.status === 'approved';
 
 const [{ data: listing }, { data: rawMedia }] = await Promise.all([
   supabase.from('listings').select('*').eq('id', id).eq('status', 'approved').single(),
@@ -14,6 +17,20 @@ const [{ data: listing }, { data: rawMedia }] = await Promise.all([
 ]);
 
 if (!listing) return Astro.redirect('/app/browse');
+
+// Check for an existing inquiry by this user on this listing
+let existingInquiryId: string | null = null;
+if (isFarmer && isApproved) {
+  const { data: existing } = await supabase
+    .from('inquiries')
+    .select('id')
+    .eq('listing_id', id)
+    .eq('from_profile_id', profile!.id)
+    .maybeSingle();
+  existingInquiryId = existing?.id ?? null;
+}
+
+const canInquire = isFarmer && isApproved && listing.owner_profile_id !== profile?.id;
 
 // Batch-sign all photo URLs in one storage call
 type Photo = { id: string; storage_path: string; sort_order: number; url: string };
@@ -26,7 +43,7 @@ if (rawMedia && rawMedia.length > 0) {
     .createSignedUrls(rawMedia.map(m => m.storage_path), 3600);
 
   const signedMap = Object.fromEntries(
-    (signed ?? []).filter(s => s.signedUrl).map(s => [s.path, s.signedUrl!])
+    (signed ?? []).filter(s => s.signedUrl && s.path).map(s => [s.path!, s.signedUrl!])
   );
 
   photos = rawMedia
@@ -127,19 +144,61 @@ const fmt = (v: number | null) => v != null ? v.toLocaleString() : null;
           </div>
         </div>
 
-        <!-- Inquiry CTA — placeholder until E9 -->
+        <!-- Inquiry CTA -->
         <div class="shrink-0">
-          <button
-            disabled
-            class="w-full rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground opacity-60 sm:w-auto"
-            title="Inquiries coming soon"
-          >
-            Send inquiry
-          </button>
-          <p class="mt-1 text-center text-xs text-muted-foreground">Coming soon</p>
+          {canInquire && existingInquiryId ? (
+            <a
+              href={`/app/inquiries/${existingInquiryId}`}
+              class="inline-block w-full rounded-md bg-primary px-6 py-2.5 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
+            >
+              View conversation
+            </a>
+          ) : canInquire ? (
+            <button
+              id="inquiry-toggle"
+              class="w-full rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto"
+            >
+              Send inquiry
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
+
+    <!-- Inquiry compose form (hidden until button click) -->
+    {canInquire && !existingInquiryId && (
+      <div id="inquiry-form" class="hidden rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-1 font-semibold">Send an inquiry</h2>
+        <p class="mb-4 text-sm text-muted-foreground">
+          Introduce yourself and explain what you're looking for. The landowner will see your profile when they respond.
+        </p>
+        <form method="POST" action="/api/inquiries" class="space-y-3">
+          <input type="hidden" name="listing_id" value={id} />
+          <textarea
+            name="body"
+            required
+            rows={5}
+            placeholder="Hi, I'm a farmer looking for land in this area. I'm interested in a cash rent arrangement and have experience with row crops..."
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          ></textarea>
+          <div class="flex gap-2">
+            <button
+              type="submit"
+              class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Send message
+            </button>
+            <button
+              type="button"
+              id="inquiry-cancel"
+              class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
 
     <!-- Key stats strip -->
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -265,3 +324,11 @@ const fmt = (v: number | null) => v != null ? v.toLocaleString() : null;
 
   </div>
 </AppLayout>
+
+<script>
+  const toggle  = document.getElementById('inquiry-toggle');
+  const form    = document.getElementById('inquiry-form');
+  const cancel  = document.getElementById('inquiry-cancel');
+  toggle?.addEventListener('click', () => form?.classList.remove('hidden'));
+  cancel?.addEventListener('click', () => form?.classList.add('hidden'));
+</script>

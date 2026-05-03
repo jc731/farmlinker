@@ -1,0 +1,101 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const { profile } = Astro.locals;
+if (!profile?.roles.includes('admin')) return Astro.redirect('/app');
+
+const admin = createSupabaseAdminClient();
+
+const { data: inquiries } = await admin
+  .from('inquiries')
+  .select(`
+    id, status, created_at,
+    listings ( id, property_name, county, state ),
+    from_profile:profiles!inquiries_from_profile_id_fkey ( id, first_name, last_name ),
+    to_profile:profiles!inquiries_to_profile_id_fkey   ( id, first_name, last_name )
+  `)
+  .order('created_at', { ascending: false });
+
+const STATUS_STYLE: Record<string, string> = {
+  open:    'bg-green-100 text-green-700',
+  closed:  'bg-zinc-100 text-zinc-500',
+  blocked: 'bg-red-100 text-red-600',
+};
+
+const counts = {
+  open:    (inquiries ?? []).filter(i => i.status === 'open').length,
+  closed:  (inquiries ?? []).filter(i => i.status === 'closed').length,
+  blocked: (inquiries ?? []).filter(i => i.status === 'blocked').length,
+};
+---
+
+<AdminLayout title="Inquiries">
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold">All inquiries</h1>
+      <div class="flex gap-3 text-sm text-muted-foreground">
+        <span>{counts.open} open</span>
+        <span>{counts.closed} closed</span>
+        {counts.blocked > 0 && <span class="text-red-600">{counts.blocked} blocked</span>}
+      </div>
+    </div>
+
+    {!inquiries?.length ? (
+      <div class="rounded-lg border bg-white p-16 text-center text-muted-foreground shadow-sm">
+        No inquiries yet.
+      </div>
+    ) : (
+      <div class="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <table class="w-full text-sm">
+          <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th class="px-4 py-3 text-left">Listing</th>
+              <th class="px-4 py-3 text-left">Farmer</th>
+              <th class="px-4 py-3 text-left">Landowner</th>
+              <th class="px-4 py-3 text-left">Status</th>
+              <th class="px-4 py-3 text-left">Started</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            {(inquiries ?? []).map(inq => {
+              const listing     = inq.listings as unknown as { id: string; property_name: string | null; county: string | null; state: string | null } | null;
+              const fromProfile = inq.from_profile as unknown as { id: string; first_name: string; last_name: string } | null;
+              const toProfile   = inq.to_profile   as unknown as { id: string; first_name: string; last_name: string } | null;
+              return (
+                <tr class="hover:bg-muted/20">
+                  <td class="px-4 py-3 font-medium">
+                    {listing?.property_name ?? '—'}
+                    {listing?.county && <div class="text-xs font-normal text-muted-foreground">{listing.county} County, {listing.state}</div>}
+                  </td>
+                  <td class="px-4 py-3">
+                    {fromProfile
+                      ? <a href={`/admin/users/${fromProfile.id}`} class="text-primary hover:underline">{fromProfile.first_name} {fromProfile.last_name}</a>
+                      : '—'}
+                  </td>
+                  <td class="px-4 py-3">
+                    {toProfile
+                      ? <a href={`/admin/users/${toProfile.id}`} class="text-primary hover:underline">{toProfile.first_name} {toProfile.last_name}</a>
+                      : '—'}
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class:list={['rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[inq.status] ?? '']}>
+                      {inq.status}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">
+                    {new Date(inq.created_at).toLocaleDateString()}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <a href={`/admin/inquiries/${inq.id}`} class="text-primary hover:underline">View →</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</AdminLayout>

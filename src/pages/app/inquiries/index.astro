@@ -1,0 +1,91 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+
+const { supabase, profile } = Astro.locals;
+if (!profile) return Astro.redirect('/auth/sign-in');
+
+// Fetch inquiries where user is either side, with listing + other party names
+const { data: inquiries } = await supabase
+  .from('inquiries')
+  .select(`
+    id, status, created_at,
+    listings ( id, property_name, county, city, state ),
+    from_profile:profiles!inquiries_from_profile_id_fkey ( id, first_name, last_name ),
+    to_profile:profiles!inquiries_to_profile_id_fkey   ( id, first_name, last_name )
+  `)
+  .or(`from_profile_id.eq.${profile.id},to_profile_id.eq.${profile.id}`)
+  .order('created_at', { ascending: false });
+
+const STATUS_STYLE: Record<string, string> = {
+  open:    'bg-green-100 text-green-700',
+  closed:  'bg-zinc-100 text-zinc-500',
+  blocked: 'bg-red-100 text-red-600',
+};
+
+function otherParty(inq: typeof inquiries extends (infer T)[] | null ? T : never) {
+  if (!inq) return '—';
+  const from = inq.from_profile as unknown as { id: string; first_name: string; last_name: string } | null;
+  const to   = inq.to_profile   as unknown as { id: string; first_name: string; last_name: string } | null;
+  const other = from?.id === profile!.id ? to : from;
+  return other ? `${other.first_name} ${other.last_name}` : '—';
+}
+---
+
+<AppLayout title="My inquiries">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold">Inquiries</h1>
+      <p class="text-sm text-muted-foreground">Messages between you and other parties about a listing.</p>
+    </div>
+
+    {!inquiries?.length ? (
+      <div class="rounded-lg border bg-white p-16 text-center text-muted-foreground shadow-sm">
+        No inquiries yet.
+        {profile.roles.includes('farmer') && (
+          <span> <a href="/app/browse" class="text-primary hover:underline">Browse listings</a> to send your first inquiry.</span>
+        )}
+      </div>
+    ) : (
+      <div class="overflow-hidden rounded-lg border bg-white shadow-sm">
+        <table class="w-full text-sm">
+          <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+            <tr>
+              <th class="px-4 py-3 text-left">Listing</th>
+              <th class="px-4 py-3 text-left">With</th>
+              <th class="px-4 py-3 text-left">Status</th>
+              <th class="px-4 py-3 text-left">Started</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y">
+            {inquiries.map(inq => {
+              const listing = inq.listings as unknown as { id: string; property_name: string | null; county: string | null; city: string | null; state: string | null } | null;
+              return (
+                <tr class="hover:bg-muted/20">
+                  <td class="px-4 py-3 font-medium">
+                    {listing?.property_name ?? 'Unnamed listing'}
+                    <div class="text-xs font-normal text-muted-foreground">
+                      {[listing?.county ? `${listing.county} County` : null, listing?.city, listing?.state].filter(Boolean).join(', ')}
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">{otherParty(inq)}</td>
+                  <td class="px-4 py-3">
+                    <span class:list={['rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[inq.status] ?? '']}>
+                      {inq.status}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-muted-foreground">
+                    {new Date(inq.created_at).toLocaleDateString()}
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <a href={`/app/inquiries/${inq.id}`} class="text-primary hover:underline">Open →</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+</AppLayout>

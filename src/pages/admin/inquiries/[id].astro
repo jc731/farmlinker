@@ -1,0 +1,170 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+
+const { profile } = Astro.locals;
+if (!profile?.roles.includes('admin')) return Astro.redirect('/app');
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/inquiries');
+
+const admin = createSupabaseAdminClient();
+
+const [{ data: inquiry }, { data: messages }] = await Promise.all([
+  admin
+    .from('inquiries')
+    .select(`
+      id, status, created_at,
+      listings ( id, property_name, county, city, state ),
+      from_profile:profiles!inquiries_from_profile_id_fkey ( id, first_name, last_name, email ),
+      to_profile:profiles!inquiries_to_profile_id_fkey   ( id, first_name, last_name, email )
+    `)
+    .eq('id', id)
+    .single(),
+  admin
+    .from('inquiry_messages')
+    .select('id, body, created_at, sender_profile_id, sender:profiles!inquiry_messages_sender_profile_id_fkey(id, first_name, last_name)')
+    .eq('inquiry_id', id)
+    .order('created_at', { ascending: true }),
+]);
+
+if (!inquiry) return Astro.redirect('/admin/inquiries');
+
+type PartyProfile = { id: string; first_name: string; last_name: string; email?: string } | null;
+const fromProfile = inquiry.from_profile as unknown as PartyProfile;
+const toProfile   = inquiry.to_profile   as unknown as PartyProfile;
+const listing     = inquiry.listings as unknown as { id: string; property_name: string | null; county: string | null; city: string | null; state: string | null } | null;
+
+---
+
+<AdminLayout title={`Inquiry — ${listing?.property_name ?? 'Listing'}`}>
+  <div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-muted-foreground">
+      <a href="/admin/inquiries" class="hover:text-foreground">Inquiries</a>
+      <span class="mx-2">›</span>
+      <span>{listing?.property_name ?? 'Listing'}</span>
+    </nav>
+
+    <!-- Header -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold">{listing?.property_name ?? 'Unnamed listing'}</h1>
+          <p class="text-sm text-muted-foreground">
+            {[listing?.county ? `${listing.county} County` : null, listing?.city, listing?.state].filter(Boolean).join(', ')}
+          </p>
+          <span class:list={[
+            'mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+            inquiry.status === 'open'    && 'bg-green-100 text-green-700',
+            inquiry.status === 'closed'  && 'bg-zinc-100 text-zinc-500',
+            inquiry.status === 'blocked' && 'bg-red-100 text-red-600',
+          ]}>
+            {inquiry.status}
+          </span>
+        </div>
+
+        <!-- Admin actions -->
+        <div class="flex flex-wrap gap-2">
+          {inquiry.status !== 'blocked' && (
+            <form method="POST" action={`/api/admin/inquiries/${id}/block`}>
+              <button type="submit"
+                class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10">
+                Block inquiry
+              </button>
+            </form>
+          )}
+          {inquiry.status === 'blocked' && (
+            <span class="text-sm text-red-600 font-medium">Blocked by admin</span>
+          )}
+        </div>
+      </div>
+
+      <!-- Parties -->
+      <dl class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 border-t pt-4 text-sm sm:grid-cols-4">
+        <div>
+          <dt class="text-muted-foreground">Farmer</dt>
+          <dd class="font-medium">
+            {fromProfile
+              ? <a href={`/admin/users/${fromProfile.id}`} class="text-primary hover:underline">{fromProfile.first_name} {fromProfile.last_name}</a>
+              : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">Farmer email</dt>
+          <dd>{fromProfile?.email ?? '—'}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">Landowner</dt>
+          <dd class="font-medium">
+            {toProfile
+              ? <a href={`/admin/users/${toProfile.id}`} class="text-primary hover:underline">{toProfile.first_name} {toProfile.last_name}</a>
+              : '—'}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">Landowner email</dt>
+          <dd>{toProfile?.email ?? '—'}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Message thread (read-only view of participant messages) -->
+    <div class="space-y-3">
+      {(messages ?? []).map(msg => {
+        const sender = msg.sender as unknown as { id: string; first_name: string; last_name: string } | null;
+        const name   = sender ? `${sender.first_name} ${sender.last_name}` : 'Unknown';
+        const isFrom = msg.sender_profile_id === fromProfile?.id;
+        const isTo   = msg.sender_profile_id === toProfile?.id;
+        const isAdminMsg = !isFrom && !isTo;
+        return (
+          <div class:list={['flex', isFrom ? 'justify-start' : 'justify-end']}>
+            <div class:list={[
+              'max-w-prose rounded-2xl px-4 py-3 text-sm shadow-sm',
+              isFrom    && 'rounded-tl-sm border bg-white',
+              isTo      && 'rounded-tr-sm bg-primary/10 border border-primary/20',
+              isAdminMsg && 'rounded-tr-sm bg-zinc-800 text-white',
+            ]}>
+              <p class:list={['mb-1 text-xs font-semibold', isAdminMsg ? 'text-zinc-300' : 'opacity-70']}>
+                {name}{isAdminMsg ? ' (admin)' : isFrom ? ' · farmer' : ' · landowner'}
+              </p>
+              <p class="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
+              <p class:list={['mt-1 text-right text-xs opacity-60']}>
+                {new Date(msg.created_at).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+
+      {!messages?.length && (
+        <div class="rounded-lg border bg-white p-8 text-center text-sm text-muted-foreground shadow-sm">
+          No messages in this thread.
+        </div>
+      )}
+    </div>
+
+    <!-- Admin reply form (works regardless of status — admin can always write) -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <h2 class="mb-1 font-semibold">Send as admin</h2>
+      <p class="mb-4 text-xs text-muted-foreground">Your message will appear in the thread for both parties.</p>
+      <form method="POST" action={`/api/admin/inquiries/${id}/messages`} class="space-y-3">
+        <textarea
+          name="body"
+          required
+          rows={3}
+          placeholder="Admin note or message…"
+          class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+        ></textarea>
+        <button
+          type="submit"
+          class="rounded-md bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+
+  </div>
+</AdminLayout>

@@ -11,7 +11,8 @@
     "supabase": "supabase",
     "seed:named": "tsx scripts/seed-named.ts",
     "seed:bulk": "tsx scripts/seed-bulk.ts",
-    "seed": "tsx scripts/seed-named.ts && tsx scripts/seed-bulk.ts"
+    "seed:listings": "tsx scripts/seed-listings.ts",
+    "seed": "tsx scripts/seed-named.ts && tsx scripts/seed-bulk.ts && tsx scripts/seed-listings.ts"
   },
   "dependencies": {
     "@astrojs/node": "^9.0.0",

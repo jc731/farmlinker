@@ -1,0 +1,150 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+
+const { supabase, profile } = Astro.locals;
+if (!profile) return Astro.redirect('/auth/sign-in');
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/app/inquiries');
+
+const [{ data: inquiry }, { data: messages }] = await Promise.all([
+  supabase
+    .from('inquiries')
+    .select(`
+      id, status, created_at,
+      listings ( id, property_name, county, city, state ),
+      from_profile:profiles!inquiries_from_profile_id_fkey ( id, first_name, last_name ),
+      to_profile:profiles!inquiries_to_profile_id_fkey   ( id, first_name, last_name )
+    `)
+    .eq('id', id)
+    .single(),
+  supabase
+    .from('inquiry_messages')
+    .select('id, body, created_at, sender_profile_id, sender:profiles!inquiry_messages_sender_profile_id_fkey(first_name, last_name)')
+    .eq('inquiry_id', id)
+    .order('created_at', { ascending: true }),
+]);
+
+if (!inquiry) return Astro.redirect('/app/inquiries');
+
+const isOpen = inquiry.status === 'open';
+
+type PartyProfile = { id: string; first_name: string; last_name: string } | null;
+const fromProfile = inquiry.from_profile as unknown as PartyProfile;
+const toProfile   = inquiry.to_profile   as unknown as PartyProfile;
+const listing     = inquiry.listings as unknown as { id: string; property_name: string | null; county: string | null; city: string | null; state: string | null } | null;
+
+function senderName(senderId: string) {
+  if (fromProfile?.id === senderId) return `${fromProfile.first_name} ${fromProfile.last_name}`;
+  if (toProfile?.id === senderId)   return `${toProfile.first_name} ${toProfile.last_name}`;
+  return 'Unknown';
+}
+---
+
+<AppLayout title={`Inquiry — ${listing?.property_name ?? 'Listing'}`}>
+  <div class="space-y-6">
+
+    <!-- Breadcrumb -->
+    <nav class="text-sm text-muted-foreground">
+      <a href="/app/inquiries" class="hover:text-foreground">Inquiries</a>
+      <span class="mx-2">›</span>
+      <span>{listing?.property_name ?? 'Listing'}</span>
+    </nav>
+
+    <!-- Header card -->
+    <div class="rounded-lg border bg-white p-6 shadow-sm">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 class="text-xl font-bold">{listing?.property_name ?? 'Unnamed listing'}</h1>
+          <p class="text-sm text-muted-foreground">
+            {[listing?.county ? `${listing.county} County` : null, listing?.city, listing?.state].filter(Boolean).join(', ')}
+          </p>
+          <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span>
+              Between <strong class="text-foreground">{fromProfile ? `${fromProfile.first_name} ${fromProfile.last_name}` : '—'}</strong>
+              {' '}and <strong class="text-foreground">{toProfile ? `${toProfile.first_name} ${toProfile.last_name}` : '—'}</strong>
+            </span>
+            <span class:list={[
+              'rounded-full px-2.5 py-0.5 text-xs font-medium capitalize',
+              inquiry.status === 'open'    && 'bg-green-100 text-green-700',
+              inquiry.status === 'closed'  && 'bg-zinc-100 text-zinc-500',
+              inquiry.status === 'blocked' && 'bg-red-100 text-red-600',
+            ]}>
+              {inquiry.status}
+            </span>
+          </div>
+        </div>
+
+        {isOpen && (
+          <form method="POST" action={`/api/inquiries/${id}/close`} class="shrink-0">
+            <button
+              type="submit"
+              class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+            >
+              Close inquiry
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+
+    <!-- Message thread -->
+    <div class="space-y-3">
+      {(messages ?? []).map(msg => {
+        const sender = msg.sender as unknown as { first_name: string; last_name: string } | null;
+        const name   = sender ? `${sender.first_name} ${sender.last_name}` : senderName(msg.sender_profile_id);
+        const isMe   = msg.sender_profile_id === profile.id;
+        return (
+          <div class:list={['flex', isMe ? 'justify-end' : 'justify-start']}>
+            <div class:list={[
+              'max-w-prose rounded-2xl px-4 py-3 text-sm shadow-sm',
+              isMe
+                ? 'rounded-tr-sm bg-primary text-primary-foreground'
+                : 'rounded-tl-sm border bg-white',
+            ]}>
+              {!isMe && (
+                <p class="mb-1 text-xs font-semibold opacity-70">{name}</p>
+              )}
+              <p class="whitespace-pre-wrap leading-relaxed">{msg.body}</p>
+              <p class:list={['mt-1 text-right text-xs opacity-60', isMe ? '' : '']}>
+                {new Date(msg.created_at).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+
+      {!messages?.length && (
+        <div class="rounded-lg border bg-white p-8 text-center text-sm text-muted-foreground shadow-sm">
+          No messages yet.
+        </div>
+      )}
+    </div>
+
+    <!-- Reply form -->
+    {isOpen ? (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <form method="POST" action={`/api/inquiries/${id}/messages`} class="space-y-3">
+          <textarea
+            name="body"
+            required
+            rows={4}
+            placeholder="Write a message…"
+            class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+          ></textarea>
+          <button
+            type="submit"
+            class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Send
+          </button>
+        </form>
+      </div>
+    ) : (
+      <div class="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+        This inquiry is {inquiry.status}. No further messages can be sent.
+      </div>
+    )}
+
+  </div>
+</AppLayout>

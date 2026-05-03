@@ -6,20 +6,20 @@ const { supabase } = Astro.locals;
 const [
   { count: pendingUsers },
   { count: approvedUsers },
-  { count: totalUsers },
   { count: pendingListings },
+  { count: openInquiries },
 ] = await Promise.all([
   supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
   supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
-  supabase.from('profiles').select('*', { count: 'exact', head: true }),
   supabase.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+  supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('status', 'open'),
 ]);
 
 const stats = [
   { label: 'Pending users', value: pendingUsers ?? 0, href: '/admin/review/users', urgent: (pendingUsers ?? 0) > 0 },
   { label: 'Approved users', value: approvedUsers ?? 0, href: '/admin/users' },
-  { label: 'Total users', value: totalUsers ?? 0, href: '/admin/users' },
   { label: 'Pending listings', value: pendingListings ?? 0, href: '/admin/review/listings', urgent: (pendingListings ?? 0) > 0 },
+  { label: 'Open inquiries', value: openInquiries ?? 0, href: '/admin/inquiries' },
 ];
 ---
 
