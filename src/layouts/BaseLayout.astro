@@ -1,5 +1,6 @@
 ---
 import '@/styles/globals.css';
+import DevToolbar from '@/components/DevToolbar.astro';
 
 interface Props {
   title: string;
@@ -20,5 +21,6 @@ const { title, description = 'Connecting farmers with landowners in Illinois.' }
   </head>
   <body>
     <slot />
+    {import.meta.env.DEV && <DevToolbar />}
   </body>
 </html>
