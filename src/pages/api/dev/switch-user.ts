@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 // Only active in development — this route does not exist in production builds.
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
-  if (!import.meta.env.DEV) return new Response('Not found', { status: 404 });
+  if (!import.meta.env.DEV && !import.meta.env.PUBLIC_ENABLE_DEV_TOOLS) return new Response('Not found', { status: 404 });
 
   const form   = await request.formData();
   const email  = form.get('email')?.toString();

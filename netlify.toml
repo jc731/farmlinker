@@ -10,3 +10,9 @@
   command = "pnpm run dev"
   port = 4321
   targetPort = 4321
+
+[context.deploy-preview.environment]
+  PUBLIC_ENABLE_DEV_TOOLS = "true"
+
+[context.branch-deploy.environment]
+  PUBLIC_ENABLE_DEV_TOOLS = "true"

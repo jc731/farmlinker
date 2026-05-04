@@ -21,6 +21,6 @@ const { title, description = 'Connecting farmers with landowners in Illinois.' }
   </head>
   <body>
     <slot />
-    {import.meta.env.DEV && <DevToolbar />}
+    {(import.meta.env.DEV || import.meta.env.PUBLIC_ENABLE_DEV_TOOLS) && <DevToolbar />}
   </body>
 </html>
