@@ -1,31 +1,57 @@
 ---
-// Only renders in development. Import this in layouts and wrap with import.meta.env.DEV.
 const { profile } = Astro.locals;
 const pathname = new URL(Astro.request.url).pathname;
 
-const ACCOUNTS = [
-  { email: 'admin@farmlinker.dev',             label: 'admin',    tag: 'admin',    color: 'text-violet-400' },
-  { email: 'farmer-approved@farmlinker.dev',   label: 'farmer ✓', tag: 'farmer',   color: 'text-emerald-400' },
-  { email: 'farmer-pending@farmlinker.dev',    label: 'farmer ↓', tag: 'farmer',   color: 'text-yellow-400' },
-  { email: 'landowner-approved@farmlinker.dev',label: 'owner ✓',  tag: 'landowner',color: 'text-sky-400' },
-  { email: 'landowner-pending@farmlinker.dev', label: 'owner ↓',  tag: 'landowner',color: 'text-yellow-400' },
-] as const;
+// Read email from the existing SSR session — no extra API call needed
+const { data: { session } } = await Astro.locals.supabase.auth.getSession();
+const currentEmail = session?.user?.email ?? null;
 
-// Identify which named account is currently active
-let currentEmail: string | null = null;
-if (profile) {
-  const { data } = await Astro.locals.supabase.auth.getUser();
-  currentEmail = data.user?.email ?? null;
-}
+// Each account gets a destination page that proves the switch worked
+const ACCOUNTS = [
+  {
+    email:    'admin@farmlinker.dev',
+    label:    'admin',
+    color:    'text-violet-400 bg-violet-950',
+    dimColor: 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5',
+    redirect: '/admin',
+  },
+  {
+    email:    'farmer-approved@farmlinker.dev',
+    label:    'farmer ✓',
+    color:    'text-emerald-400 bg-emerald-950',
+    dimColor: 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5',
+    redirect: '/app/browse',
+  },
+  {
+    email:    'farmer-pending@farmlinker.dev',
+    label:    'farmer ↓',
+    color:    'text-yellow-400 bg-yellow-950',
+    dimColor: 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5',
+    redirect: '/app',
+  },
+  {
+    email:    'landowner-approved@farmlinker.dev',
+    label:    'owner ✓',
+    color:    'text-sky-400 bg-sky-950',
+    dimColor: 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5',
+    redirect: '/app/listings',
+  },
+  {
+    email:    'landowner-pending@farmlinker.dev',
+    label:    'owner ↓',
+    color:    'text-yellow-400 bg-yellow-950',
+    dimColor: 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5',
+    redirect: '/app',
+  },
+] as const;
 ---
 
-<div id="dev-toolbar" class="fixed bottom-0 left-0 right-0 z-[9999] flex items-stretch border-t border-white/10 bg-zinc-950 font-mono text-xs text-zinc-400">
+<div class="fixed bottom-0 left-0 right-0 z-[9999] flex items-stretch border-t border-white/10 bg-zinc-950 font-mono text-xs text-zinc-400">
 
   <!-- Toggle -->
   <button
     id="dev-toggle"
     class="shrink-0 border-r border-white/10 px-2.5 py-1.5 text-zinc-500 transition-colors hover:bg-white/5 hover:text-white"
-    title="Toggle dev toolbar"
     aria-label="Toggle dev toolbar"
   >
     <span id="dev-toggle-icon">▲</span>
@@ -36,7 +62,7 @@ if (profile) {
     <span class="rounded bg-fuchsia-700 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white">dev</span>
   </div>
 
-  <!-- Breakpoint indicator (pure CSS) -->
+  <!-- Breakpoint indicator — pure CSS, no JS -->
   <div class="flex items-center border-r border-white/10 px-2.5 py-1.5">
     <span class="font-bold text-yellow-400">
       <span class="sm:hidden">xs</span>
@@ -48,52 +74,53 @@ if (profile) {
     </span>
   </div>
 
-  <!-- Scrollable main area -->
-  <div id="dev-toolbar-body" class="flex min-w-0 flex-1 items-center gap-px overflow-x-auto">
+  <!-- Scrollable body -->
+  <div id="dev-toolbar-body" class="flex min-w-0 flex-1 items-center overflow-x-auto">
 
     <!-- Current user -->
     <div class="flex shrink-0 items-center gap-2 border-r border-white/10 px-3 py-1.5">
       {profile ? (
         <>
           <span class="text-white">{profile.first_name} {profile.last_name}</span>
-          <span class="text-zinc-500">·</span>
-          <span class="text-zinc-400">{profile.roles.join(', ')}</span>
+          <span class="text-zinc-600">·</span>
+          <span class="text-zinc-400">{(profile.roles as string[]).join(', ')}</span>
           <span class="text-zinc-600">/</span>
           <span class:list={[
             profile.status === 'approved' ? 'text-emerald-400' :
             profile.status === 'pending'  ? 'text-yellow-400' :
             'text-red-400'
-          ]}>
-            {profile.status}
-          </span>
+          ]}>{profile.status}</span>
         </>
       ) : (
         <span class="text-zinc-600">not signed in</span>
       )}
     </div>
 
-    <!-- Quick-switch buttons -->
-    <div class="flex shrink-0 items-center gap-px px-2">
+    <!-- Quick-switch buttons — server-side form POST, reliable cookie auth -->
+    <div class="flex shrink-0 items-center gap-px px-2 py-1">
       {ACCOUNTS.map(acct => {
         const isActive = currentEmail === acct.email;
         return (
-          <button
-            type="button"
-            data-dev-switch={acct.email}
-            class:list={[
-              'rounded px-2 py-1 transition-colors',
-              isActive
-                ? `${acct.color} bg-white/10 font-semibold`
-                : 'text-zinc-500 hover:bg-white/5 hover:text-zinc-200',
-            ]}
-          >
-            {acct.label}
-          </button>
+          <form method="POST" action="/api/dev/switch-user" style="display:contents">
+            <input type="hidden" name="email"    value={acct.email} />
+            <input type="hidden" name="redirect" value={acct.redirect} />
+            <button
+              type="submit"
+              class:list={[
+                'rounded px-2 py-0.5 transition-colors',
+                isActive ? acct.color : acct.dimColor,
+                isActive && 'font-semibold ring-1 ring-white/20',
+              ]}
+              title={acct.email}
+            >
+              {acct.label}
+            </button>
+          </form>
         );
       })}
     </div>
 
-    <!-- Path -->
+    <!-- Current path -->
     <div class="hidden shrink-0 items-center border-l border-white/10 px-3 py-1.5 text-zinc-600 sm:flex">
       {pathname}
     </div>
@@ -102,65 +129,37 @@ if (profile) {
 
   <!-- Sign out -->
   {profile && (
-    <button
-      type="button"
-      id="dev-signout"
-      class="shrink-0 border-l border-white/10 px-3 py-1.5 text-zinc-500 transition-colors hover:bg-red-950 hover:text-red-400"
-    >
-      sign out
-    </button>
+    <form method="POST" action="/auth/sign-out" class="flex items-stretch">
+      <button
+        type="submit"
+        class="shrink-0 border-l border-white/10 px-3 py-1.5 text-zinc-500 transition-colors hover:bg-red-950 hover:text-red-400"
+      >
+        sign out
+      </button>
+    </form>
   )}
 
 </div>
 
-<!-- Spacer so content doesn't hide under toolbar -->
+<!-- Spacer so page content isn't hidden behind toolbar -->
 <div class="h-8"></div>
 
 <script>
-  import { supabase } from '@/lib/supabase/client';
-
-  // Toggle collapse
-  const toggleBtn   = document.getElementById('dev-toggle');
-  const toggleIcon  = document.getElementById('dev-toggle-icon');
-  const toolbarBody = document.getElementById('dev-toolbar-body');
+  const toggleBtn  = document.getElementById('dev-toggle');
+  const toggleIcon = document.getElementById('dev-toggle-icon');
+  const body       = document.getElementById('dev-toolbar-body');
 
   let collapsed = localStorage.getItem('dev-toolbar-collapsed') === '1';
-  function applyCollapse() {
-    if (collapsed) {
-      toolbarBody?.classList.add('hidden');
-      if (toggleIcon) toggleIcon.textContent = '▼';
-    } else {
-      toolbarBody?.classList.remove('hidden');
-      if (toggleIcon) toggleIcon.textContent = '▲';
-    }
+
+  function apply() {
+    body?.classList.toggle('hidden', collapsed);
+    if (toggleIcon) toggleIcon.textContent = collapsed ? '▼' : '▲';
   }
-  applyCollapse();
+  apply();
 
   toggleBtn?.addEventListener('click', () => {
     collapsed = !collapsed;
     localStorage.setItem('dev-toolbar-collapsed', collapsed ? '1' : '0');
-    applyCollapse();
-  });
-
-  // Quick-switch
-  document.querySelectorAll<HTMLButtonElement>('[data-dev-switch]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const email = btn.dataset.devSwitch!;
-      btn.textContent = '…';
-      btn.disabled = true;
-      const { error } = await supabase.auth.signInWithPassword({ email, password: 'devpass123' });
-      if (error) {
-        btn.textContent = 'err';
-        setTimeout(() => location.reload(), 800);
-      } else {
-        location.reload();
-      }
-    });
-  });
-
-  // Sign out
-  document.getElementById('dev-signout')?.addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    location.href = '/auth/sign-in';
+    apply();
   });
 </script>

@@ -3,6 +3,10 @@ import AuthLayout from '@/layouts/AuthLayout.astro';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { SignInForm } from '@/components/auth/SignInForm';
 
+// Redirect already-signed-in users away from the login page
+const { profile } = Astro.locals;
+if (profile) return Astro.redirect('/app');
+
 const errorParam = Astro.url.searchParams.get('error');
 ---
 
