@@ -1,12 +1,377 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+
+const { profile } = Astro.locals;
+const isSignedIn = !!profile;
 ---
 
-<BaseLayout title="Home">
-  <main class="flex min-h-screen flex-col items-center justify-center p-8">
-    <h1 class="text-4xl font-bold text-primary">Farmlinker</h1>
-    <p class="mt-4 text-lg text-muted-foreground">
-      Connecting farmers with landowners across Illinois.
-    </p>
-  </main>
+<BaseLayout title="Home" description="Farmlinker connects Illinois farmers seeking land with landowners ready to lease — with an approval process that keeps every match trustworthy.">
+
+  <!-- ── Nav ──────────────────────────────────────────────────────────────── -->
+  <header class="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-white/95 backdrop-blur-sm">
+    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+      <a href="/" class="text-lg font-bold text-primary">Farmlinker</a>
+      <nav class="flex items-center gap-2 text-sm">
+        <a href="#how-it-works" class="hidden px-3 py-1.5 text-muted-foreground hover:text-foreground sm:block">
+          How it works
+        </a>
+        <a href="#for-farmers" class="hidden px-3 py-1.5 text-muted-foreground hover:text-foreground sm:block">
+          For farmers
+        </a>
+        <a href="#for-landowners" class="hidden px-3 py-1.5 text-muted-foreground hover:text-foreground sm:block">
+          For landowners
+        </a>
+        {isSignedIn ? (
+          <a href="/app"
+            class="rounded-md bg-primary px-4 py-1.5 font-medium text-primary-foreground hover:bg-primary/90">
+            Go to app
+          </a>
+        ) : (
+          <>
+            <a href="/auth/sign-in"
+              class="px-3 py-1.5 text-muted-foreground hover:text-foreground">
+              Sign in
+            </a>
+            <a href="/auth/sign-up"
+              class="rounded-md bg-primary px-4 py-1.5 font-medium text-primary-foreground hover:bg-primary/90">
+              Create account
+            </a>
+          </>
+        )}
+      </nav>
+    </div>
+  </header>
+
+  <div class="pt-14">
+
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
+    <section class="relative overflow-hidden bg-gradient-to-br from-primary/5 via-white to-primary/10 px-4 py-24 sm:py-32">
+      <!-- Subtle background texture -->
+      <div class="pointer-events-none absolute inset-0 opacity-[0.03]"
+        style="background-image: radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0); background-size: 32px 32px;">
+      </div>
+
+      <div class="relative mx-auto max-w-4xl text-center">
+        <div class="mb-4 inline-block rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          Illinois farmland connections
+        </div>
+        <h1 class="text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+          The right farmer<br class="hidden sm:block" />
+          for the right land.
+        </h1>
+        <p class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground leading-relaxed">
+          Farmlinker connects Illinois farmers seeking land with landowners ready to lease —
+          through a vetted, approval-based process that puts long-term stewardship first.
+        </p>
+
+        <!-- Dual CTA -->
+        <div class="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <a href="/auth/sign-up?role=farmer"
+            class="w-full rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg sm:w-auto">
+            I'm looking for farmland
+          </a>
+          <a href="/auth/sign-up?role=landowner"
+            class="w-full rounded-xl border-2 border-primary bg-white px-8 py-4 text-base font-semibold text-primary shadow-md transition-all hover:bg-primary/5 hover:shadow-lg sm:w-auto">
+            I have land to lease
+          </a>
+        </div>
+
+        <p class="mt-4 text-sm text-muted-foreground">
+          Free to join &nbsp;·&nbsp; Illinois-focused &nbsp;·&nbsp; Approval-vetted profiles
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Stats strip ────────────────────────────────────────────────────── -->
+    <section class="border-y bg-white px-4 py-8">
+      <div class="mx-auto grid max-w-4xl grid-cols-3 gap-8 text-center">
+        <div>
+          <div class="text-3xl font-bold text-primary">102</div>
+          <div class="mt-1 text-sm text-muted-foreground">Illinois counties covered</div>
+        </div>
+        <div>
+          <div class="text-3xl font-bold text-primary">Vetted</div>
+          <div class="mt-1 text-sm text-muted-foreground">Every profile reviewed</div>
+        </div>
+        <div>
+          <div class="text-3xl font-bold text-primary">Free</div>
+          <div class="mt-1 text-sm text-muted-foreground">No fees to connect</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── How it works ───────────────────────────────────────────────────── -->
+    <section id="how-it-works" class="px-4 py-20">
+      <div class="mx-auto max-w-5xl">
+        <div class="mb-12 text-center">
+          <h2 class="text-3xl font-bold">How Farmlinker works</h2>
+          <p class="mt-3 text-muted-foreground">A simple, trusted process — from profile to partnership.</p>
+        </div>
+
+        <div class="grid gap-8 sm:grid-cols-3">
+          {[
+            {
+              step: '1',
+              title: 'Create your profile',
+              body: 'Farmers describe their operation, experience, and what they\'re looking for. Landowners detail their property, terms, and the kind of stewardship they want.',
+              icon: `<svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"/></svg>`,
+            },
+            {
+              step: '2',
+              title: 'Get reviewed & approved',
+              body: 'Our team reviews every profile before it goes live. This keeps the network trusted — no anonymous listings, no unvetted inquiries.',
+              icon: `<svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>`,
+            },
+            {
+              step: '3',
+              title: 'Connect & start talking',
+              body: 'Approved farmers browse listings and send inquiries. Landowners respond. Both parties see the full thread and can close the conversation at any time.',
+              icon: `<svg class="h-8 w-8" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"/></svg>`,
+            },
+          ].map(({ step, title, body, icon }) => (
+            <div class="relative rounded-2xl border bg-white p-8 shadow-sm">
+              <div class="mb-4 flex items-center gap-4">
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" set:html={icon} />
+                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+                  {step}
+                </div>
+              </div>
+              <h3 class="mb-2 text-lg font-semibold">{title}</h3>
+              <p class="text-sm leading-relaxed text-muted-foreground">{body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ── For farmers ───────────────────────────────────────────────────── -->
+    <section id="for-farmers" class="bg-gradient-to-br from-primary/5 to-white px-4 py-20">
+      <div class="mx-auto max-w-5xl">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <div class="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+              For farmers
+            </div>
+            <h2 class="text-3xl font-bold">Find land that fits your operation</h2>
+            <p class="mt-4 text-muted-foreground leading-relaxed">
+              Whether you're a beginning farmer looking for your first lease or an experienced
+              operator ready to expand, Farmlinker helps you find farmland matched to how you
+              actually farm — not just the cheapest available acres.
+            </p>
+            <ul class="mt-6 space-y-3 text-sm">
+              {[
+                'Browse approved listings with acreage, infrastructure, and tenure details',
+                'Filter by county, crop type, and farming method compatibility',
+                'Send direct inquiries to landowners — no middleman',
+                'Landowners see your full profile before responding',
+                'Maintain your conversation thread in one place',
+              ].map(item => (
+                <li class="flex items-start gap-3">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="/auth/sign-up?role=farmer"
+              class="mt-8 inline-block rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+              Create a farmer profile
+            </a>
+          </div>
+
+          <!-- Illustration card -->
+          <div class="rounded-2xl border bg-white p-8 shadow-sm">
+            <div class="mb-6 flex aspect-video items-center justify-center rounded-xl bg-gradient-to-br from-primary/8 to-primary/3">
+              <svg viewBox="0 0 120 80" xmlns="http://www.w3.org/2000/svg" class="h-32 w-32 text-primary/30" aria-hidden="true">
+                <circle cx="95" cy="18" r="12" fill="currentColor" opacity="0.5"/>
+                <ellipse cx="110" cy="72" rx="70" ry="28" fill="currentColor" opacity="0.2"/>
+                <ellipse cx="25" cy="78" rx="50" ry="22" fill="currentColor" opacity="0.35"/>
+                <line x1="50" y1="60" x2="50" y2="36" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+                <ellipse cx="50" cy="31" rx="4" ry="10" fill="currentColor" opacity="0.45"/>
+                <line x1="65" y1="62" x2="65" y2="42" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+                <ellipse cx="65" cy="37" rx="4" ry="10" fill="currentColor" opacity="0.45"/>
+                <line x1="35" y1="63" x2="35" y2="46" stroke="currentColor" stroke-width="2" opacity="0.5"/>
+                <ellipse cx="35" cy="41" rx="3.5" ry="9" fill="currentColor" opacity="0.45"/>
+              </svg>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                <span class="font-medium">Rolling Hills Farm</span>
+                <span class="text-muted-foreground">240 ac · McLean Co.</span>
+              </div>
+              <div class="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                <span class="font-medium">Sunrise Acres</span>
+                <span class="text-muted-foreground">180 ac · Sangamon Co.</span>
+              </div>
+              <div class="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                <span class="font-medium">Prairie View Farm</span>
+                <span class="text-muted-foreground">320 ac · Champaign Co.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── For landowners ─────────────────────────────────────────────────── -->
+    <section id="for-landowners" class="bg-white px-4 py-20">
+      <div class="mx-auto max-w-5xl">
+        <div class="grid items-center gap-12 lg:grid-cols-2">
+
+          <!-- Illustration card -->
+          <div class="order-2 rounded-2xl border bg-white p-8 shadow-sm lg:order-1">
+            <div class="space-y-4">
+              <div class="rounded-xl border p-4">
+                <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">New inquiry</div>
+                <p class="text-sm text-foreground">
+                  "Hi, I'm an experienced grain farmer looking to expand in Champaign County.
+                  I've been farming for 12 years and am interested in a long-term cash rent arrangement…"
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                  <div class="h-6 w-6 rounded-full bg-primary/20"></div>
+                  <span class="text-xs text-muted-foreground">Jake W. · Farmer · Approved</span>
+                </div>
+              </div>
+              <div class="rounded-xl border p-4">
+                <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">New inquiry</div>
+                <p class="text-sm text-foreground">
+                  "I'm a beginning farmer transitioning to organic production and looking for
+                  50–100 acres with water access in central Illinois…"
+                </p>
+                <div class="mt-3 flex items-center gap-2">
+                  <div class="h-6 w-6 rounded-full bg-primary/20"></div>
+                  <span class="text-xs text-muted-foreground">Emily C. · Farmer · Approved</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-1 lg:order-2">
+            <div class="mb-3 inline-block rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+              For landowners
+            </div>
+            <h2 class="text-3xl font-bold">Find a farmer who shares your values</h2>
+            <p class="mt-4 text-muted-foreground leading-relaxed">
+              Your land deserves more than the highest bidder. Farmlinker helps you find
+              farmers whose methods, goals, and long-term vision align with yours — and
+              every farmer has been reviewed before they can reach out to you.
+            </p>
+            <ul class="mt-6 space-y-3 text-sm">
+              {[
+                'Create a detailed listing with your terms, infrastructure, and preferences',
+                'Specify what farming methods and crops you\'ll allow',
+                'Share the story behind your land — its history, conservation status, easements',
+                'Receive inquiries only from approved, vetted farmers',
+                'Respond at your own pace — no pressure, no bidding',
+              ].map(item => (
+                <li class="flex items-start gap-3">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clip-rule="evenodd"/>
+                  </svg>
+                  <span class="text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <a href="/auth/sign-up?role=landowner"
+              class="mt-8 inline-block rounded-xl border-2 border-primary px-6 py-3 text-sm font-semibold text-primary hover:bg-primary/5">
+              List your farmland
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Trust band ─────────────────────────────────────────────────────── -->
+    <section class="border-y bg-primary px-4 py-16 text-primary-foreground">
+      <div class="mx-auto max-w-3xl text-center">
+        <h2 class="text-2xl font-bold sm:text-3xl">
+          Every profile is reviewed before it goes live.
+        </h2>
+        <p class="mt-4 text-primary-foreground/80 leading-relaxed">
+          We believe trust is the foundation of a good land relationship. That's why Farmlinker
+          reviews every farmer and landowner profile before granting full access — so when someone
+          reaches out to you, you know they're serious.
+        </p>
+        <div class="mt-8 grid grid-cols-3 gap-6 text-center">
+          {[
+            { label: 'Farmer profiles', desc: 'Reviewed for experience, goals, and fit' },
+            { label: 'Landowner listings', desc: 'Approved before appearing in browse' },
+            { label: 'All inquiries', desc: 'Monitored for quality and respect' },
+          ].map(({ label, desc }) => (
+            <div>
+              <div class="font-semibold">{label}</div>
+              <div class="mt-1 text-xs text-primary-foreground/70">{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Final CTA ──────────────────────────────────────────────────────── -->
+    <section class="px-4 py-24 text-center">
+      <div class="mx-auto max-w-2xl">
+        <h2 class="text-3xl font-bold">Ready to find your match?</h2>
+        <p class="mt-4 text-muted-foreground leading-relaxed">
+          Create your profile today — it's free, and every account is reviewed within a few
+          business days. Illinois farmland connections start here.
+        </p>
+        <div class="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+          <a href="/auth/sign-up?role=farmer"
+            class="w-full rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-md hover:bg-primary/90 sm:w-auto">
+            I'm looking for farmland
+          </a>
+          <a href="/auth/sign-up?role=landowner"
+            class="w-full rounded-xl border-2 border-primary px-8 py-4 text-base font-semibold text-primary hover:bg-primary/5 sm:w-auto">
+            I have land to lease
+          </a>
+        </div>
+        <p class="mt-4 text-sm text-muted-foreground">
+          Already have an account?
+          <a href="/auth/sign-in" class="text-primary hover:underline">Sign in</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <footer class="border-t bg-zinc-950 px-4 py-12 text-sm text-zinc-400">
+      <div class="mx-auto max-w-5xl">
+        <div class="grid gap-8 sm:grid-cols-3">
+          <div>
+            <div class="mb-3 text-base font-bold text-white">Farmlinker</div>
+            <p class="leading-relaxed">
+              Connecting Illinois farmers and landowners through a trusted, approval-based process.
+            </p>
+          </div>
+          <div>
+            <div class="mb-3 font-semibold text-zinc-300">Platform</div>
+            <ul class="space-y-2">
+              <li><a href="/auth/sign-up?role=farmer" class="hover:text-white">Create farmer profile</a></li>
+              <li><a href="/auth/sign-up?role=landowner" class="hover:text-white">List your farmland</a></li>
+              <li><a href="/auth/sign-in" class="hover:text-white">Sign in</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="mb-3 font-semibold text-zinc-300">About</div>
+            <ul class="space-y-2">
+              <li><a href="#how-it-works" class="hover:text-white">How it works</a></li>
+              <li><a href="#for-farmers" class="hover:text-white">For farmers</a></li>
+              <li><a href="#for-landowners" class="hover:text-white">For landowners</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="mt-10 border-t border-white/10 pt-6 text-center text-xs text-zinc-600">
+          &copy; {new Date().getFullYear()} Farmlinker &nbsp;·&nbsp; Illinois
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
 </BaseLayout>
+
+<style>
+  html {
+    scroll-behavior: smooth;
+  }
+</style>
