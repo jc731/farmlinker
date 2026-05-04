@@ -15,7 +15,7 @@
     "seed": "tsx scripts/seed-named.ts && tsx scripts/seed-bulk.ts && tsx scripts/seed-listings.ts"
   },
   "dependencies": {
-    "@astrojs/node": "^9.0.0",
+    "@astrojs/netlify": "^6.6.5",
     "@astrojs/react": "^4.0.0",
     "@astrojs/tailwind": "^5.1.0",
     "@radix-ui/react-label": "^2.1.8",
@@ -43,9 +43,11 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@parcel/watcher",
       "esbuild",
       "sharp",
-      "supabase"
+      "supabase",
+      "unix-dgram"
     ]
   }
 }

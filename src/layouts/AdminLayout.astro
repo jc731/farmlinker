@@ -33,7 +33,7 @@ const navItems = [
         <div class="flex items-center gap-4">
           <a href="/admin" class="font-bold tracking-tight">Farmlinker Admin</a>
           <span class="text-zinc-500">|</span>
-          <nav class="flex items-center gap-1">
+          <nav class="flex items-center gap-1 overflow-x-auto">
             {navItems.map(({ href, label }) => (
               <a
                 href={href}

@@ -1,0 +1,76 @@
+---
+import '@/styles/globals.css';
+
+// 500 errors may occur before or during middleware — be fully defensive
+let isSignedIn = false;
+try {
+  isSignedIn = !!Astro.locals.profile;
+} catch {
+  // ignore — locals may be incomplete if error occurred in middleware
+}
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Something went wrong | Farmlinker</title>
+  </head>
+  <body class="min-h-screen bg-background font-sans text-foreground">
+
+    <!-- Minimal nav -->
+    <header class="border-b bg-white">
+      <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <a href="/" class="text-lg font-bold text-primary">Farmlinker</a>
+        <div class="flex items-center gap-2 text-sm">
+          {isSignedIn ? (
+            <a href="/app" class="rounded-md bg-primary px-4 py-1.5 font-medium text-primary-foreground hover:bg-primary/90">
+              Go to app
+            </a>
+          ) : (
+            <a href="/auth/sign-in" class="px-3 py-1.5 text-muted-foreground hover:text-foreground">Sign in</a>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <main class="flex min-h-[calc(100vh-57px)] flex-col items-center justify-center px-4 py-16 text-center">
+      <!-- Error icon -->
+      <div class="mb-8 flex h-40 w-40 items-center justify-center rounded-full bg-gradient-to-br from-red-50 to-orange-50">
+        <svg class="h-16 w-16 text-red-300" fill="none" stroke="currentColor" stroke-width="1.25" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+        </svg>
+      </div>
+
+      <div class="text-6xl font-bold text-red-200">500</div>
+      <h1 class="mt-2 text-2xl font-bold">Something went wrong</h1>
+      <p class="mt-3 max-w-md text-muted-foreground">
+        We hit an unexpected error. This has been noted and we'll look into it.
+        Try refreshing the page — it may be a temporary hiccup.
+      </p>
+
+      <!-- Actions -->
+      <div class="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+        <button
+          onclick="window.location.reload()"
+          class="w-full cursor-pointer rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto">
+          Try again
+        </button>
+        <a href="/"
+          class="w-full rounded-md border px-5 py-2.5 text-sm font-medium hover:bg-muted sm:w-auto">
+          Go home
+        </a>
+        {isSignedIn && (
+          <a href="/app"
+            class="w-full rounded-md border px-5 py-2.5 text-sm font-medium hover:bg-muted sm:w-auto">
+            Dashboard
+          </a>
+        )}
+      </div>
+    </main>
+
+  </body>
+</html>
