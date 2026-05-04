@@ -1,0 +1,329 @@
+---
+import AppLayout from '@/layouts/AppLayout.astro';
+import {
+  ILLINOIS_COUNTIES, FARMING_STATUS_OPTIONS, ACREAGE_RANGE_OPTIONS,
+  TENURE_OPTIONS, CROP_OPTIONS, LIVESTOCK_OPTIONS, FARMING_METHOD_OPTIONS,
+  INFRASTRUCTURE_OPTIONS, EXPERIENCE_OPTIONS, BUSINESS_PLAN_OPTIONS,
+  REFERRAL_OPTIONS,
+} from '@/lib/onboarding-options';
+
+const { supabase, profile: localProfile } = Astro.locals;
+if (!localProfile) return Astro.redirect('/auth/sign-in');
+
+const saved = Astro.url.searchParams.get('saved') === '1';
+
+const isFarmer    = localProfile.roles.includes('farmer');
+const isLandowner = localProfile.roles.includes('landowner');
+
+// Fetch full profile (middleware only stores a slim subset for routing)
+const [{ data: profile }, { data: farmerProfile }, { data: landownerProfile }] = await Promise.all([
+  supabase.from('profiles').select('*').eq('id', localProfile.id).single(),
+  isFarmer
+    ? supabase.from('farmer_profiles').select('*').eq('profile_id', localProfile.id).maybeSingle()
+    : Promise.resolve({ data: null }),
+  isLandowner
+    ? supabase.from('landowner_profiles').select('*').eq('profile_id', localProfile.id).maybeSingle()
+    : Promise.resolve({ data: null }),
+]);
+
+if (!profile) return Astro.redirect('/app');
+
+// Helpers for pre-checking multi-select values
+const fp = farmerProfile;
+const checked = (arr: string[] | null | undefined, val: string) =>
+  (arr ?? []).includes(val);
+
+const inputCls = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring';
+const labelCls = 'block text-sm font-medium text-foreground mb-1';
+const sectionCls = 'rounded-lg border bg-white p-6 shadow-sm space-y-5';
+---
+
+<AppLayout title="My profile">
+  <div class="space-y-6">
+
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">My profile</h1>
+        <p class="text-sm text-muted-foreground capitalize">
+          {(localProfile.roles as string[]).join(' & ')} · {localProfile.status}
+        </p>
+      </div>
+      {saved && (
+        <div class="rounded-md bg-green-50 border border-green-200 px-4 py-2 text-sm font-medium text-green-700">
+          Profile saved
+        </div>
+      )}
+    </div>
+
+    <form method="POST" action="/api/profile" class="space-y-6">
+
+      <!-- Contact info -->
+      <div class={sectionCls}>
+        <h2 class="font-semibold">Contact information</h2>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="first_name" class={labelCls}>First name</label>
+            <input id="first_name" name="first_name" type="text" required
+              value={profile.first_name} class={inputCls} />
+          </div>
+          <div>
+            <label for="last_name" class={labelCls}>Last name</label>
+            <input id="last_name" name="last_name" type="text" required
+              value={profile.last_name} class={inputCls} />
+          </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="phone" class={labelCls}>Phone</label>
+            <input id="phone" name="phone" type="tel"
+              value={profile.phone ?? ''} class={inputCls} />
+          </div>
+          <div>
+            <label for="address" class={labelCls}>Street address</label>
+            <input id="address" name="address" type="text"
+              value={profile.address ?? ''} class={inputCls} />
+          </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="sm:col-span-1">
+            <label for="city" class={labelCls}>City</label>
+            <input id="city" name="city" type="text"
+              value={profile.city ?? ''} class={inputCls} />
+          </div>
+          <div>
+            <label for="state" class={labelCls}>State</label>
+            <input id="state" name="state" type="text"
+              value={profile.state ?? 'IL'} class={inputCls} />
+          </div>
+          <div>
+            <label for="zip" class={labelCls}>ZIP</label>
+            <input id="zip" name="zip" type="text"
+              value={profile.zip ?? ''} class={inputCls} />
+          </div>
+        </div>
+      </div>
+
+      <!-- Farmer details -->
+      {isFarmer && (
+        <div class={sectionCls}>
+          <h2 class="font-semibold">Farming details</h2>
+
+          <div>
+            <label for="farming_status" class={labelCls}>Farming status</label>
+            <select id="farming_status" name="farming_status" class={inputCls}>
+              <option value="">Select…</option>
+              {FARMING_STATUS_OPTIONS.map(o => (
+                <option value={o} selected={fp?.farming_status === o}>{o}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label for="farming_plans_and_goals" class={labelCls}>
+              Farming plans & goals
+            </label>
+            <textarea id="farming_plans_and_goals" name="farming_plans_and_goals"
+              rows={4} class={inputCls}>{fp?.farming_plans_and_goals ?? ''}</textarea>
+          </div>
+
+          <div>
+            <label for="farmable_acreage_range" class={labelCls}>Acreage looking for</label>
+            <select id="farmable_acreage_range" name="farmable_acreage_range" class={inputCls}>
+              <option value="">Select…</option>
+              {ACREAGE_RANGE_OPTIONS.map(o => (
+                <option value={o} selected={fp?.farmable_acreage_range === o}>{o}</option>
+              ))}
+            </select>
+          </div>
+
+          <!-- Counties -->
+          <div>
+            <span class={labelCls}>Counties of interest</span>
+            <div class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-3 lg:grid-cols-4">
+              {ILLINOIS_COUNTIES.map(c => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="counties" value={c}
+                    checked={checked(fp?.counties, c)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {c}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Tenure options -->
+          <div>
+            <span class={labelCls}>Tenure arrangements desired</span>
+            <div class="mt-2 grid grid-cols-1 gap-y-1.5 text-sm sm:grid-cols-2">
+              {TENURE_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="tenure_options_desired" value={o}
+                    checked={checked(fp?.tenure_options_desired, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Crops -->
+          <div>
+            <span class={labelCls}>Crops</span>
+            <div class="mt-2 grid grid-cols-2 gap-y-1.5 text-sm sm:grid-cols-3">
+              {CROP_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="crops" value={o}
+                    checked={checked(fp?.crops, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Livestock -->
+          <div>
+            <span class={labelCls}>Livestock</span>
+            <div class="mt-2 grid grid-cols-2 gap-y-1.5 text-sm sm:grid-cols-3">
+              {LIVESTOCK_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="livestock" value={o}
+                    checked={checked(fp?.livestock, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Farming methods -->
+          <div>
+            <span class={labelCls}>Farming methods</span>
+            <div class="mt-2 grid grid-cols-1 gap-y-1.5 text-sm sm:grid-cols-2">
+              {FARMING_METHOD_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="farming_methods" value={o}
+                    checked={checked(fp?.farming_methods, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Infrastructure needed -->
+          <div>
+            <span class={labelCls}>Infrastructure needed</span>
+            <div class="mt-2 grid grid-cols-1 gap-y-1.5 text-sm sm:grid-cols-2">
+              {INFRASTRUCTURE_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="infrastructure_needed" value={o}
+                    checked={checked(fp?.infrastructure_needed, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- Experience & education -->
+          <div>
+            <span class={labelCls}>Experience & education</span>
+            <div class="mt-2 grid grid-cols-1 gap-y-1.5 text-sm sm:grid-cols-2">
+              {EXPERIENCE_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="experience_education" value={o}
+                    checked={checked(fp?.experience_education, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="business_plan_status" class={labelCls}>Business plan status</label>
+              <select id="business_plan_status" name="business_plan_status" class={inputCls}>
+                <option value="">Select…</option>
+                {BUSINESS_PLAN_OPTIONS.map(o => (
+                  <option value={o} selected={fp?.business_plan_status === o}>{o}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label for="referral_source" class={labelCls}>How did you hear about us?</label>
+              <select id="referral_source" name="referral_source" class={inputCls}>
+                <option value="">Select…</option>
+                {REFERRAL_OPTIONS.map(o => (
+                  <option value={o} selected={fp?.referral_source === o}>{o}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="business_plan_summary" class={labelCls}>Business plan summary</label>
+            <textarea id="business_plan_summary" name="business_plan_summary"
+              rows={3} class={inputCls}
+              placeholder="Brief description of your business plan…"
+            >{fp?.business_plan_summary ?? ''}</textarea>
+          </div>
+        </div>
+      )}
+
+      <!-- Landowner details -->
+      {isLandowner && (
+        <div class={sectionCls}>
+          <h2 class="font-semibold">Landowner details</h2>
+          <div>
+            <label for="lo_referral" class={labelCls}>How did you hear about us?</label>
+            <select id="lo_referral" name="referral_source" class={inputCls}>
+              <option value="">Select…</option>
+              {REFERRAL_OPTIONS.map(o => (
+                <option value={o} selected={landownerProfile?.referral_source === o}>{o}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      <!-- Account info (read-only) -->
+      <div class={sectionCls}>
+        <h2 class="font-semibold">Account</h2>
+        <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+          <div>
+            <dt class="text-muted-foreground">Role</dt>
+            <dd class="font-medium capitalize">{(localProfile.roles as string[]).join(' & ')}</dd>
+          </div>
+          <div>
+            <dt class="text-muted-foreground">Status</dt>
+            <dd class:list={[
+              'font-medium capitalize',
+              localProfile.status === 'approved' ? 'text-green-600' :
+              localProfile.status === 'pending'  ? 'text-amber-600' : 'text-red-600',
+            ]}>{localProfile.status}</dd>
+          </div>
+          <div>
+            <dt class="text-muted-foreground">Member since</dt>
+            <dd>{new Date(profile.created_at).toLocaleDateString()}</dd>
+          </div>
+        </dl>
+        <p class="text-xs text-muted-foreground">Role and status are managed by admins and cannot be changed here.</p>
+      </div>
+
+      <div class="flex justify-end">
+        <button
+          type="submit"
+          class="rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Save profile
+        </button>
+      </div>
+
+    </form>
+  </div>
+</AppLayout>
