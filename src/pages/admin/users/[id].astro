@@ -26,10 +26,11 @@ const isFarmer = profile.roles?.includes('farmer');
 const isLandowner = profile.roles?.includes('landowner');
 
 const STATUS_COLORS: Record<string, string> = {
-  pending:   'bg-amber-100 text-amber-700',
-  approved:  'bg-green-100 text-green-700',
-  rejected:  'bg-red-100 text-red-700',
-  suspended: 'bg-zinc-100 text-zinc-700',
+  incomplete: 'bg-blue-50 text-blue-600',
+  pending:    'bg-amber-100 text-amber-700',
+  approved:   'bg-green-100 text-green-700',
+  rejected:   'bg-red-100 text-red-700',
+  suspended:  'bg-zinc-100 text-zinc-700',
 };
 
 const fmt = (iso: string | null) => iso

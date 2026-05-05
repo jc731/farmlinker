@@ -1,10 +1,13 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
+import DataTable from '@/components/DataTable.astro';
+import Th from '@/components/Th.astro';
+import Tr from '@/components/Tr.astro';
+import Td from '@/components/Td.astro';
 
 const { supabase, profile } = Astro.locals;
 if (!profile) return Astro.redirect('/auth/sign-in');
 
-// Fetch inquiries where user is either side, with listing + other party names
 const { data: inquiries } = await supabase
   .from('inquiries')
   .select(`
@@ -46,46 +49,38 @@ function otherParty(inq: typeof inquiries extends (infer T)[] | null ? T : never
         )}
       </div>
     ) : (
-      <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
-        <table class="w-full text-sm">
-          <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 text-left">Listing</th>
-              <th class="px-4 py-3 text-left">With</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Started</th>
-              <th class="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            {inquiries.map(inq => {
-              const listing = inq.listings as unknown as { id: string; property_name: string | null; county: string | null; city: string | null; state: string | null } | null;
-              return (
-                <tr class="hover:bg-muted/20">
-                  <td class="px-4 py-3 font-medium">
-                    {listing?.property_name ?? 'Unnamed listing'}
-                    <div class="text-xs font-normal text-muted-foreground">
-                      {[listing?.county ? `${listing.county} County` : null, listing?.city, listing?.state].filter(Boolean).join(', ')}
-                    </div>
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground">{otherParty(inq)}</td>
-                  <td class="px-4 py-3">
-                    <span class:list={['rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[inq.status] ?? '']}>
-                      {inq.status}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground">
-                    {new Date(inq.created_at).toLocaleDateString()}
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    <a href={`/app/inquiries/${inq.id}`} class="text-primary hover:underline">Open →</a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <tr slot="head">
+          <Th>Listing</Th>
+          <Th>With</Th>
+          <Th>Status</Th>
+          <Th>Started</Th>
+          <Th></Th>
+        </tr>
+        {inquiries.map(inq => {
+          const listing = inq.listings as unknown as { id: string; property_name: string | null; county: string | null; city: string | null; state: string | null } | null;
+          return (
+            <Tr>
+              <Td class="font-medium">
+                {listing?.property_name ?? 'Unnamed listing'}
+                <div class="text-xs font-normal text-muted-foreground">
+                  {[listing?.county ? `${listing.county} County` : null, listing?.city, listing?.state].filter(Boolean).join(', ')}
+                </div>
+              </Td>
+              <Td class="text-muted-foreground">{otherParty(inq)}</Td>
+              <Td>
+                <span class:list={['rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[inq.status] ?? '']}>
+                  {inq.status}
+                </span>
+              </Td>
+              <Td class="text-muted-foreground">{new Date(inq.created_at).toLocaleDateString()}</Td>
+              <Td class="text-right">
+                <a href={`/app/inquiries/${inq.id}`} class="text-primary hover:underline">Open →</a>
+              </Td>
+            </Tr>
+          );
+        })}
+      </DataTable>
     )}
   </div>
 </AppLayout>

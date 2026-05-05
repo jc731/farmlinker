@@ -1,0 +1,9 @@
+---
+interface Props {
+  class?: string;
+}
+const { class: extraClass } = Astro.props;
+---
+<th class:list={['px-4 py-3 text-left', extraClass]}>
+  <slot />
+</th>

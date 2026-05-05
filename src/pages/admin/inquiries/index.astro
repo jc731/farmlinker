@@ -1,6 +1,10 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import DataTable from '@/components/DataTable.astro';
+import Th from '@/components/Th.astro';
+import Tr from '@/components/Tr.astro';
+import Td from '@/components/Td.astro';
 
 const { profile } = Astro.locals;
 if (!profile?.roles.includes('admin')) return Astro.redirect('/app');
@@ -46,56 +50,48 @@ const counts = {
         No inquiries yet.
       </div>
     ) : (
-      <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
-        <table class="w-full text-sm">
-          <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 text-left">Listing</th>
-              <th class="px-4 py-3 text-left">Farmer</th>
-              <th class="px-4 py-3 text-left">Landowner</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Started</th>
-              <th class="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            {(inquiries ?? []).map(inq => {
-              const listing     = inq.listings as unknown as { id: string; property_name: string | null; county: string | null; state: string | null } | null;
-              const fromProfile = inq.from_profile as unknown as { id: string; first_name: string; last_name: string } | null;
-              const toProfile   = inq.to_profile   as unknown as { id: string; first_name: string; last_name: string } | null;
-              return (
-                <tr class="hover:bg-muted/20">
-                  <td class="px-4 py-3 font-medium">
-                    {listing?.property_name ?? '—'}
-                    {listing?.county && <div class="text-xs font-normal text-muted-foreground">{listing.county} County, {listing.state}</div>}
-                  </td>
-                  <td class="px-4 py-3">
-                    {fromProfile
-                      ? <a href={`/admin/users/${fromProfile.id}`} class="text-primary hover:underline">{fromProfile.first_name} {fromProfile.last_name}</a>
-                      : '—'}
-                  </td>
-                  <td class="px-4 py-3">
-                    {toProfile
-                      ? <a href={`/admin/users/${toProfile.id}`} class="text-primary hover:underline">{toProfile.first_name} {toProfile.last_name}</a>
-                      : '—'}
-                  </td>
-                  <td class="px-4 py-3">
-                    <span class:list={['rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[inq.status] ?? '']}>
-                      {inq.status}
-                    </span>
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground">
-                    {new Date(inq.created_at).toLocaleDateString()}
-                  </td>
-                  <td class="px-4 py-3 text-right">
-                    <a href={`/admin/inquiries/${inq.id}`} class="text-primary hover:underline">View →</a>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <tr slot="head">
+          <Th>Listing</Th>
+          <Th>Farmer</Th>
+          <Th>Landowner</Th>
+          <Th>Status</Th>
+          <Th>Started</Th>
+          <Th></Th>
+        </tr>
+        {(inquiries ?? []).map(inq => {
+          const listing     = inq.listings     as unknown as { id: string; property_name: string | null; county: string | null; state: string | null } | null;
+          const fromProfile = inq.from_profile as unknown as { id: string; first_name: string; last_name: string } | null;
+          const toProfile   = inq.to_profile   as unknown as { id: string; first_name: string; last_name: string } | null;
+          return (
+            <Tr>
+              <Td class="font-medium">
+                {listing?.property_name ?? '—'}
+                {listing?.county && <div class="text-xs font-normal text-muted-foreground">{listing.county} County, {listing.state}</div>}
+              </Td>
+              <Td>
+                {fromProfile
+                  ? <a href={`/admin/users/${fromProfile.id}`} class="text-primary hover:underline">{fromProfile.first_name} {fromProfile.last_name}</a>
+                  : '—'}
+              </Td>
+              <Td>
+                {toProfile
+                  ? <a href={`/admin/users/${toProfile.id}`} class="text-primary hover:underline">{toProfile.first_name} {toProfile.last_name}</a>
+                  : '—'}
+              </Td>
+              <Td>
+                <span class:list={['rounded-full px-2.5 py-0.5 text-xs font-medium capitalize', STATUS_STYLE[inq.status] ?? '']}>
+                  {inq.status}
+                </span>
+              </Td>
+              <Td class="text-muted-foreground">{new Date(inq.created_at).toLocaleDateString()}</Td>
+              <Td class="text-right">
+                <a href={`/admin/inquiries/${inq.id}`} class="text-primary hover:underline">View →</a>
+              </Td>
+            </Tr>
+          );
+        })}
+      </DataTable>
     )}
   </div>
 </AdminLayout>

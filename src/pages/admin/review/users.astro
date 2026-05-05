@@ -1,5 +1,9 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import DataTable from '@/components/DataTable.astro';
+import Th from '@/components/Th.astro';
+import Tr from '@/components/Tr.astro';
+import Td from '@/components/Td.astro';
 
 const { supabase } = Astro.locals;
 
@@ -31,61 +35,50 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
     )}
 
     {pending && pending.length > 0 && (
-      <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
-        <table class="w-full text-sm">
-          <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 text-left">Name</th>
-              <th class="px-4 py-3 text-left">Email</th>
-              <th class="px-4 py-3 text-left">Role(s)</th>
-              <th class="px-4 py-3 text-left">Joined</th>
-              <th class="px-4 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            {pending.map(user => (
-              <tr class="hover:bg-muted/20">
-                <td class="px-4 py-3 font-medium">
-                  <a href={`/admin/users/${user.id}`} class="hover:text-primary hover:underline">
-                    {user.first_name} {user.last_name}
-                  </a>
-                </td>
-                <td class="px-4 py-3 text-muted-foreground">{user.email}</td>
-                <td class="px-4 py-3">
-                  <div class="flex flex-wrap gap-1">
-                    {user.roles.map((r: string) => (
-                      <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">
-                        {r}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-                <td class="px-4 py-3 text-muted-foreground">{fmt(user.created_at)}</td>
-                <td class="px-4 py-3">
-                  <div class="flex gap-2">
-                    <form method="POST" action={`/api/admin/users/${user.id}/approve`}>
-                      <button type="submit"
-                        class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                        Approve
-                      </button>
-                    </form>
-                    <form method="POST" action={`/api/admin/users/${user.id}/reject`}>
-                      <button type="submit"
-                        class="rounded border border-destructive px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10">
-                        Reject
-                      </button>
-                    </form>
-                    <a href={`/admin/users/${user.id}`}
-                      class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
-                      View
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <tr slot="head">
+          <Th>Name</Th>
+          <Th>Email</Th>
+          <Th>Role(s)</Th>
+          <Th>Joined</Th>
+          <Th>Actions</Th>
+        </tr>
+        {pending.map(user => (
+          <Tr>
+            <Td class="font-medium">
+              <a href={`/admin/users/${user.id}`} class="hover:text-primary hover:underline">
+                {user.first_name} {user.last_name}
+              </a>
+            </Td>
+            <Td class="text-muted-foreground">{user.email}</Td>
+            <Td>
+              <div class="flex flex-wrap gap-1">
+                {user.roles.map((r: string) => (
+                  <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">{r}</span>
+                ))}
+              </div>
+            </Td>
+            <Td class="text-muted-foreground">{fmt(user.created_at)}</Td>
+            <Td>
+              <div class="flex gap-2">
+                <form method="POST" action={`/api/admin/users/${user.id}/approve`}>
+                  <button type="submit" class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                    Approve
+                  </button>
+                </form>
+                <form method="POST" action={`/api/admin/users/${user.id}/reject`}>
+                  <button type="submit" class="rounded border border-destructive px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10">
+                    Reject
+                  </button>
+                </form>
+                <a href={`/admin/users/${user.id}`} class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
+                  View
+                </a>
+              </div>
+            </Td>
+          </Tr>
+        ))}
+      </DataTable>
     )}
   </div>
 </AdminLayout>

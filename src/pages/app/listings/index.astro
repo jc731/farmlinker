@@ -1,5 +1,9 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
+import DataTable from '@/components/DataTable.astro';
+import Th from '@/components/Th.astro';
+import Tr from '@/components/Tr.astro';
+import Td from '@/components/Td.astro';
 
 const { supabase, profile } = Astro.locals;
 
@@ -48,47 +52,36 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
         </a>
       </div>
     ) : (
-      <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
-        <table class="w-full text-sm">
-          <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 text-left">Property</th>
-              <th class="px-4 py-3 text-left">County</th>
-              <th class="px-4 py-3 text-left">Acreage</th>
-              <th class="px-4 py-3 text-left">Status</th>
-              <th class="px-4 py-3 text-left">Created</th>
-              <th class="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            {listings.map(l => (
-              <tr class="hover:bg-muted/20">
-                <td class="px-4 py-3 font-medium">
-                  {l.property_name ?? <span class="text-muted-foreground italic">Unnamed</span>}
-                </td>
-                <td class="px-4 py-3 text-muted-foreground">{l.county ?? '—'}</td>
-                <td class="px-4 py-3 text-muted-foreground">
-                  {l.farmable_acreage != null ? `${l.farmable_acreage} ac farmable` : l.total_acreage != null ? `${l.total_acreage} ac total` : '—'}
-                </td>
-                <td class="px-4 py-3">
-                  <span class:list={[
-                    'rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                    STATUS_COLORS[l.status] ?? 'bg-muted text-muted-foreground',
-                  ]}>
-                    {l.status}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-muted-foreground">{fmt(l.created_at)}</td>
-                <td class="px-4 py-3">
-                  <a href={`/app/listings/${l.id}`} class="text-xs text-primary hover:underline">
-                    View →
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <tr slot="head">
+          <Th>Property</Th>
+          <Th>County</Th>
+          <Th>Acreage</Th>
+          <Th>Status</Th>
+          <Th>Created</Th>
+          <Th></Th>
+        </tr>
+        {listings.map(l => (
+          <Tr>
+            <Td class="font-medium">
+              {l.property_name ?? <span class="text-muted-foreground italic">Unnamed</span>}
+            </Td>
+            <Td class="text-muted-foreground">{l.county ?? '—'}</Td>
+            <Td class="text-muted-foreground">
+              {l.farmable_acreage != null ? `${l.farmable_acreage} ac farmable` : l.total_acreage != null ? `${l.total_acreage} ac total` : '—'}
+            </Td>
+            <Td>
+              <span class:list={['rounded-full px-2 py-0.5 text-xs font-medium capitalize', STATUS_COLORS[l.status] ?? 'bg-muted text-muted-foreground']}>
+                {l.status}
+              </span>
+            </Td>
+            <Td class="text-muted-foreground">{fmt(l.created_at)}</Td>
+            <Td>
+              <a href={`/app/listings/${l.id}`} class="text-xs text-primary hover:underline">View →</a>
+            </Td>
+          </Tr>
+        ))}
+      </DataTable>
     )}
   </div>
 </AppLayout>

@@ -45,14 +45,15 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return redirect('/app');
     }
 
-    // Redirect to onboarding if the user hasn't completed their profile extension yet.
-    // Admins are exempt — they have no onboarding.
+    // Redirect to onboarding if profile is incomplete or the role extension row
+    // hasn't been created yet. Admins are exempt — they have no onboarding.
     if (isAppRoute && !isOnboarding && profile && !profile.roles.includes('admin')) {
       const needsFarmer    = profile.roles.includes('farmer')    && profile.farmer_profiles.length    === 0;
       const needsLandowner = profile.roles.includes('landowner') && profile.landowner_profiles.length === 0;
+      const isIncomplete   = profile.status === 'incomplete';
 
-      if (needsFarmer)    return redirect('/app/onboarding/farmer');
-      if (needsLandowner) return redirect('/app/onboarding/landowner');
+      if (needsFarmer || (isIncomplete && profile.roles.includes('farmer')))    return redirect('/app/onboarding/farmer');
+      if (needsLandowner || (isIncomplete && profile.roles.includes('landowner'))) return redirect('/app/onboarding/landowner');
     }
   }
 

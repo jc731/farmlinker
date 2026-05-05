@@ -1,6 +1,10 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import DataTable from '@/components/DataTable.astro';
+import Th from '@/components/Th.astro';
+import Tr from '@/components/Tr.astro';
+import Td from '@/components/Td.astro';
 
 const admin = createSupabaseAdminClient();
 
@@ -32,56 +36,48 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
     )}
 
     {pending && pending.length > 0 && (
-      <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
-        <table class="w-full text-sm">
-          <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 text-left">Property</th>
-              <th class="px-4 py-3 text-left">Owner</th>
-              <th class="px-4 py-3 text-left">County</th>
-              <th class="px-4 py-3 text-left">Acreage</th>
-              <th class="px-4 py-3 text-left">Submitted</th>
-              <th class="px-4 py-3 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y">
-            {pending.map(l => {
-              const owner = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
-              return (
-                <tr class="hover:bg-muted/20">
-                  <td class="px-4 py-3 font-medium">
-                    <a href={`/admin/listings/${l.id}`} class="hover:text-primary hover:underline">
-                      {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
-                    </a>
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground">
-                    {owner ? `${owner.first_name} ${owner.last_name}` : '—'}
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground">{l.county ?? '—'}</td>
-                  <td class="px-4 py-3 text-muted-foreground">
-                    {l.farmable_acreage != null ? `${l.farmable_acreage} ac` : l.total_acreage != null ? `${l.total_acreage} ac` : '—'}
-                  </td>
-                  <td class="px-4 py-3 text-muted-foreground">{fmt(l.created_at)}</td>
-                  <td class="px-4 py-3">
-                    <div class="flex gap-2">
-                      <form method="POST" action={`/api/admin/listings/${l.id}/approve`}>
-                        <button type="submit"
-                          class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                          Approve
-                        </button>
-                      </form>
-                      <a href={`/admin/listings/${l.id}`}
-                        class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
-                        Review
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <DataTable>
+        <tr slot="head">
+          <Th>Property</Th>
+          <Th>Owner</Th>
+          <Th>County</Th>
+          <Th>Acreage</Th>
+          <Th>Submitted</Th>
+          <Th>Actions</Th>
+        </tr>
+        {pending.map(l => {
+          const owner = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
+          return (
+            <Tr>
+              <Td class="font-medium">
+                <a href={`/admin/listings/${l.id}`} class="hover:text-primary hover:underline">
+                  {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
+                </a>
+              </Td>
+              <Td class="text-muted-foreground">
+                {owner ? `${owner.first_name} ${owner.last_name}` : '—'}
+              </Td>
+              <Td class="text-muted-foreground">{l.county ?? '—'}</Td>
+              <Td class="text-muted-foreground">
+                {l.farmable_acreage != null ? `${l.farmable_acreage} ac` : l.total_acreage != null ? `${l.total_acreage} ac` : '—'}
+              </Td>
+              <Td class="text-muted-foreground">{fmt(l.created_at)}</Td>
+              <Td>
+                <div class="flex gap-2">
+                  <form method="POST" action={`/api/admin/listings/${l.id}/approve`}>
+                    <button type="submit" class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                      Approve
+                    </button>
+                  </form>
+                  <a href={`/admin/listings/${l.id}`} class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
+                    Review
+                  </a>
+                </div>
+              </Td>
+            </Tr>
+          );
+        })}
+      </DataTable>
     )}
   </div>
 </AdminLayout>

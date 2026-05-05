@@ -303,8 +303,9 @@ const sectionCls = 'rounded-lg border bg-white p-6 shadow-sm space-y-5';
             <dt class="text-muted-foreground">Status</dt>
             <dd class:list={[
               'font-medium capitalize',
-              localProfile.status === 'approved' ? 'text-green-600' :
-              localProfile.status === 'pending'  ? 'text-amber-600' : 'text-red-600',
+              localProfile.status === 'approved'   ? 'text-green-600' :
+              localProfile.status === 'pending'    ? 'text-amber-600' :
+              localProfile.status === 'incomplete' ? 'text-blue-600'  : 'text-red-600',
             ]}>{localProfile.status}</dd>
           </div>
           <div>

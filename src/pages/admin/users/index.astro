@@ -1,14 +1,33 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import DataTable from '@/components/DataTable.astro';
+import Th from '@/components/Th.astro';
+import ThSortable from '@/components/ThSortable.astro';
+import Tr from '@/components/Tr.astro';
+import Td from '@/components/Td.astro';
 
 const { supabase } = Astro.locals;
 
 const statusFilter = Astro.url.searchParams.get('status') ?? 'all';
+const sortCol      = Astro.url.searchParams.get('sort') ?? 'joined';
+const sortDir      = Astro.url.searchParams.get('dir')  === 'asc' ? 'asc' : 'desc';
+
+const SORT_MAP: Record<string, string> = {
+  name:   'last_name',
+  email:  'email',
+  joined: 'created_at',
+};
+
+const dbCol = SORT_MAP[sortCol] ?? 'created_at';
 
 let query = supabase
   .from('profiles')
   .select('id, email, roles, status, first_name, last_name, created_at')
-  .order('created_at', { ascending: false });
+  .order(dbCol, { ascending: sortDir === 'asc' });
+
+if (dbCol === 'last_name') {
+  query = query.order('first_name', { ascending: sortDir === 'asc' });
+}
 
 if (statusFilter !== 'all') {
   query = query.eq('status', statusFilter);
@@ -17,17 +36,27 @@ if (statusFilter !== 'all') {
 const { data: users } = await query;
 
 const STATUS_COLORS: Record<string, string> = {
-  pending:   'bg-amber-100 text-amber-700',
-  approved:  'bg-green-100 text-green-700',
-  rejected:  'bg-red-100 text-red-700',
-  suspended: 'bg-zinc-100 text-zinc-700',
+  incomplete: 'bg-blue-50 text-blue-600',
+  pending:    'bg-amber-100 text-amber-700',
+  approved:   'bg-green-100 text-green-700',
+  rejected:   'bg-red-100 text-red-700',
+  suspended:  'bg-zinc-100 text-zinc-700',
 };
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
   month: 'short', day: 'numeric', year: 'numeric',
 });
 
-const filterOptions = ['all', 'pending', 'approved', 'rejected', 'suspended'];
+const filterOptions = ['all', 'incomplete', 'pending', 'approved', 'rejected', 'suspended'];
+
+function sortHref(col: string) {
+  const nextDir = sortCol === col && sortDir === 'asc' ? 'desc' : 'asc';
+  const params = new URLSearchParams();
+  if (statusFilter !== 'all') params.set('status', statusFilter);
+  params.set('sort', col);
+  params.set('dir', nextDir);
+  return `/admin/users?${params.toString()}`;
+}
 ---
 
 <AdminLayout title="All users">
@@ -37,16 +66,13 @@ const filterOptions = ['all', 'pending', 'approved', 'rejected', 'suspended'];
       <span class="text-sm text-muted-foreground">{users?.length ?? 0} shown</span>
     </div>
 
-    <!-- Filters -->
     <div class="flex gap-2">
       {filterOptions.map(s => (
         <a
-          href={s === 'all' ? '/admin/users' : `/admin/users?status=${s}`}
+          href={s === 'all' ? `/admin/users?sort=${sortCol}&dir=${sortDir}` : `/admin/users?status=${s}&sort=${sortCol}&dir=${sortDir}`}
           class:list={[
             'rounded-full px-3 py-1 text-xs font-medium capitalize transition-colors',
-            statusFilter === s
-              ? 'bg-primary text-primary-foreground'
-              : 'border hover:bg-muted',
+            statusFilter === s ? 'bg-primary text-primary-foreground' : 'border hover:bg-muted',
           ]}
         >
           {s}
@@ -54,60 +80,42 @@ const filterOptions = ['all', 'pending', 'approved', 'rejected', 'suspended'];
       ))}
     </div>
 
-    <div class="overflow-x-auto rounded-lg border bg-white shadow-sm">
-      <table class="w-full text-sm">
-        <thead class="border-b bg-muted/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th class="px-4 py-3 text-left">Name</th>
-            <th class="px-4 py-3 text-left">Email</th>
-            <th class="px-4 py-3 text-left">Role(s)</th>
-            <th class="px-4 py-3 text-left">Status</th>
-            <th class="px-4 py-3 text-left">Joined</th>
-            <th class="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y">
-          {users?.map(user => (
-            <tr class="hover:bg-muted/20">
-              <td class="px-4 py-3 font-medium">
-                {user.first_name} {user.last_name}
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">{user.email}</td>
-              <td class="px-4 py-3">
-                <div class="flex flex-wrap gap-1">
-                  {user.roles.map((r: string) => (
-                    <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">
-                      {r}
-                    </span>
-                  ))}
-                </div>
-              </td>
-              <td class="px-4 py-3">
-                <span class:list={[
-                  'rounded-full px-2 py-0.5 text-xs font-medium capitalize',
-                  STATUS_COLORS[user.status] ?? 'bg-muted text-muted-foreground',
-                ]}>
-                  {user.status}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">{fmt(user.created_at)}</td>
-              <td class="px-4 py-3">
-                <a href={`/admin/users/${user.id}`}
-                  class="text-xs text-primary hover:underline">
-                  View →
-                </a>
-              </td>
-            </tr>
-          ))}
-          {(!users || users.length === 0) && (
-            <tr>
-              <td colspan="6" class="px-4 py-12 text-center text-muted-foreground">
-                No users found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+    <DataTable>
+      <tr slot="head">
+        <ThSortable href={sortHref('name')}   active={sortCol === 'name'}   dir={sortDir}>Name</ThSortable>
+        <ThSortable href={sortHref('email')}  active={sortCol === 'email'}  dir={sortDir}>Email</ThSortable>
+        <Th>Role(s)</Th>
+        <Th>Status</Th>
+        <ThSortable href={sortHref('joined')} active={sortCol === 'joined'} dir={sortDir}>Joined</ThSortable>
+        <Th></Th>
+      </tr>
+      {users?.map(user => (
+        <Tr>
+          <Td class="font-medium">{user.first_name} {user.last_name}</Td>
+          <Td class="text-muted-foreground">{user.email}</Td>
+          <Td>
+            <div class="flex flex-wrap gap-1">
+              {user.roles.map((r: string) => (
+                <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">{r}</span>
+              ))}
+            </div>
+          </Td>
+          <Td>
+            <span class:list={['rounded-full px-2 py-0.5 text-xs font-medium capitalize', STATUS_COLORS[user.status] ?? 'bg-muted text-muted-foreground']}>
+              {user.status}
+            </span>
+          </Td>
+          <Td class="text-muted-foreground">{fmt(user.created_at)}</Td>
+          <Td>
+            <a href={`/admin/users/${user.id}`} class="text-xs text-primary hover:underline">View →</a>
+          </Td>
+        </Tr>
+      ))}
+      {(!users || users.length === 0) && (
+        <tr>
+          <td colspan="6" class="px-4 py-12 text-center text-muted-foreground">No users found.</td>
+        </tr>
+      )}
+    </DataTable>
   </div>
 </AdminLayout>

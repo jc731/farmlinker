@@ -1,0 +1,16 @@
+---
+interface Props {
+  href: string;
+  active?: boolean;
+  dir?: 'asc' | 'desc';
+}
+const { href, active = false, dir = 'asc' } = Astro.props;
+---
+<th class="px-4 py-3 text-left whitespace-nowrap">
+  <a href={href} class:list={['inline-flex items-center gap-1 transition-colors hover:text-foreground', active && 'text-foreground']}>
+    <slot />
+    <span class:list={['text-[10px]', active ? 'opacity-100' : 'opacity-30']}>
+      {active ? (dir === 'asc' ? '↑' : '↓') : '↕'}
+    </span>
+  </a>
+</th>
