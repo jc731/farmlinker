@@ -27,17 +27,17 @@ const isApproved   = profile?.status === 'approved';
         <a href="/app" class="text-lg font-bold text-primary">Farmlinker</a>
         <nav class="flex items-center gap-4 text-sm">
           {isLandowner && (
-            <a href="/app/listings" class="text-muted-foreground hover:text-foreground">My listings</a>
+            <a href="/app/listings" class="hidden sm:inline text-muted-foreground hover:text-foreground">My listings</a>
           )}
           {isApproved && (
             <>
-              <a href="/app/browse" class="text-muted-foreground hover:text-foreground">Browse</a>
-              <a href="/app/inquiries" class="text-muted-foreground hover:text-foreground">Inquiries</a>
+              <a href="/app/browse" class="hidden sm:inline text-muted-foreground hover:text-foreground">Browse</a>
+              <a href="/app/inquiries" class="hidden sm:inline text-muted-foreground hover:text-foreground">Inquiries</a>
             </>
           )}
           <a href="/app/profile" class="text-muted-foreground hover:text-foreground">Profile</a>
           {isAdmin && (
-            <a href="/admin" class="text-muted-foreground hover:text-foreground">Admin</a>
+            <a href="/admin" class="hidden sm:inline text-muted-foreground hover:text-foreground">Admin</a>
           )}
           <form method="POST" action="/auth/sign-out">
             <button type="submit" class="text-muted-foreground hover:text-foreground">
