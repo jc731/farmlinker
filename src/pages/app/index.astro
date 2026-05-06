@@ -25,63 +25,49 @@ const isLandowner = profile?.roles.includes('landowner');
     {isPending && (
       <Card>
         <CardHeader>
-          <CardTitle>Complete your profile</CardTitle>
+          <CardTitle>Application under review</CardTitle>
           <CardDescription>
-            Fill out your full profile to unlock contact details and connect with
-            {isFarmer ? ' landowners' : ' farmers'}.
+            Your profile has been submitted and is awaiting admin review. You'll receive
+            access to {isFarmer ? 'contact landowners' : 'receive farmer inquiries'} once approved.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-3">
-          {isFarmer && (
-            <a
-              href="/app/onboarding/farmer"
-              class="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Complete farmer profile
-            </a>
-          )}
-          {isLandowner && (
-            <a
-              href="/app/onboarding/landowner"
-              class="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
-            >
-              Complete landowner profile
-            </a>
-          )}
-        </CardContent>
       </Card>
     )}
 
     {isApproved && (
-      <div class="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Browse listings</CardTitle>
-            <CardDescription>Find available farmland in your area.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <a
-              href="/app/listings"
-              class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
-            >
-              View listings
-            </a>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Search</CardTitle>
-            <CardDescription>Filter by county, acreage, and more.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <a
-              href="/app/search"
-              class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
-            >
-              Search
-            </a>
-          </CardContent>
-        </Card>
+      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {isFarmer && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Browse listings</CardTitle>
+              <CardDescription>Find available farmland in your area.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <a
+                href="/app/browse"
+                class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                Browse farmland
+              </a>
+            </CardContent>
+          </Card>
+        )}
+        {isLandowner && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">My listings</CardTitle>
+              <CardDescription>Manage your land listings.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <a
+                href="/app/listings"
+                class="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                View listings
+              </a>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Inquiries</CardTitle>

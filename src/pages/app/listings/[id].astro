@@ -16,8 +16,8 @@ const { data: listing } = await supabase
 if (!listing) return Astro.redirect('/app/listings');
 
 const isOwner  = listing.owner_profile_id === profile?.id;
-const canEdit  = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
-const canSubmit = isOwner && listing.status === 'draft';
+const canEdit   = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
+const canSubmit = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
 
 const STATUS_COLORS: Record<string, string> = {
   draft:    'bg-zinc-100 text-zinc-600',

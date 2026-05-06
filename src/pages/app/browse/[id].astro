@@ -160,6 +160,10 @@ const fmt = (v: number | null) => v != null ? v.toLocaleString() : null;
             >
               Send inquiry
             </button>
+          ) : isFarmer && !isApproved ? (
+            <span class="inline-block rounded-md border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-700">
+              Available once your account is approved
+            </span>
           ) : null}
         </div>
       </div>
