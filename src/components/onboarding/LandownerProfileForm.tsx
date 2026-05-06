@@ -9,7 +9,7 @@ import {
   VETERAN_OPTIONS, RACE_OPTIONS, ETHNICITY_OPTIONS, DISABILITY_OPTIONS,
 } from '@/lib/onboarding-options';
 
-const TOTAL_STEPS = 2;
+const TOTAL_STEPS = 5;
 
 function NativeSelect({ id, value, onChange, options, placeholder }: {
   id: string; value: string; onChange: (v: string) => void;
@@ -91,14 +91,14 @@ export function LandownerProfileForm() {
 
     setLoading(false);
     setDone(true);
-    setTimeout(() => { window.location.href = '/app'; }, 1500);
+    setTimeout(() => { window.location.href = '/app/listings/new?onboarding=1'; }, 1500);
   };
 
   if (done) {
     return (
       <Alert>
         <AlertDescription>
-          Profile saved! Your next step is to create a listing for your land. Redirecting to dashboard…
+          Profile saved! Now let's add your land listing…
         </AlertDescription>
       </Alert>
     );
@@ -116,7 +116,7 @@ export function LandownerProfileForm() {
         <StepShell
           step={1} totalSteps={TOTAL_STEPS}
           title="Welcome, landowner"
-          description="Just one quick question before you get started. Once your profile is reviewed, you'll be able to create a listing for your land."
+          description="Just one quick question before we set up your land listing."
           onNext={() => setStep(2)}
         >
           <FieldGroup label="How did you hear about Farmlinker?">

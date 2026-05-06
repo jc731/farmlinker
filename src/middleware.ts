@@ -14,10 +14,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   locals.user = user;
   locals.profile = null;
 
-  const isAppRoute    = pathname.startsWith('/app');
-  const isAdminRoute  = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
-  const isAuthRoute   = AUTH_ROUTES.some(r => pathname.startsWith(r));
-  const isOnboarding  = pathname.startsWith('/app/onboarding');
+  const isAppRoute      = pathname.startsWith('/app');
+  const isAdminRoute    = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
+  const isAuthRoute     = AUTH_ROUTES.some(r => pathname.startsWith(r));
+  const isOnboarding    = pathname.startsWith('/app/onboarding');
+  const isNewListing    = pathname === '/app/listings/new';
 
   if (isAuthRoute && user) {
     return redirect('/app');
@@ -51,9 +52,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
       const needsFarmer    = profile.roles.includes('farmer')    && profile.farmer_profiles.length    === 0;
       const needsLandowner = profile.roles.includes('landowner') && profile.landowner_profiles.length === 0;
       const isIncomplete   = profile.status === 'incomplete';
+      const isLandowner    = profile.roles.includes('landowner');
 
-      if (needsFarmer || (isIncomplete && profile.roles.includes('farmer')))    return redirect('/app/onboarding/farmer');
-      if (needsLandowner || (isIncomplete && profile.roles.includes('landowner'))) return redirect('/app/onboarding/landowner');
+      if (needsFarmer || (isIncomplete && profile.roles.includes('farmer'))) return redirect('/app/onboarding/farmer');
+      if (needsLandowner) return redirect('/app/onboarding/landowner');
+      // Landowner completed their profile form but hasn't submitted a listing yet
+      if (!isNewListing && isIncomplete && isLandowner) return redirect('/app/listings/new?onboarding=1');
     }
   }
 

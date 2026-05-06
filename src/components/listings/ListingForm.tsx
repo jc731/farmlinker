@@ -8,8 +8,6 @@ import {
   FARMING_METHOD_OPTIONS, TENURE_OPTIONS,
 } from '@/lib/onboarding-options';
 
-const TOTAL_STEPS = 3;
-
 type ListingRow = {
   id?: string;
   property_name?: string | null;
@@ -108,8 +106,11 @@ function TriSelect({ id, value, onChange, label }: {
   );
 }
 
-export function ListingForm({ listing }: { listing?: ListingRow }) {
+export function ListingForm({ listing, onboarding = false }: { listing?: ListingRow; onboarding?: boolean }) {
   const isEdit = !!listing?.id;
+  // In onboarding mode the listing steps are steps 3-5 of a 5-step flow
+  const stepOffset   = onboarding ? 2 : 0;
+  const totalSteps   = onboarding ? 5 : 3;
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -197,7 +198,14 @@ export function ListingForm({ listing }: { listing?: ListingRow }) {
     }
 
     const id = isEdit ? listing!.id : json.id;
-    window.location.href = `/app/listings/${id}`;
+
+    if (onboarding) {
+      // Auto-submit the draft so the DB trigger can promote landowner status to pending
+      await fetch(`/api/listings/${id}/submit`, { method: 'POST', redirect: 'manual' });
+      window.location.href = '/app';
+    } else {
+      window.location.href = `/app/listings/${id}`;
+    }
   };
 
   return (
@@ -210,7 +218,7 @@ export function ListingForm({ listing }: { listing?: ListingRow }) {
 
       {step === 1 && (
         <StepShell
-          step={1} totalSteps={TOTAL_STEPS}
+          step={1 + stepOffset} totalSteps={totalSteps}
           title="Property details"
           description="Basic information about the land you're offering."
           onNext={() => setStep(2)}
@@ -259,7 +267,7 @@ export function ListingForm({ listing }: { listing?: ListingRow }) {
 
       {step === 2 && (
         <StepShell
-          step={2} totalSteps={TOTAL_STEPS}
+          step={2 + stepOffset} totalSteps={totalSteps}
           title="Land use"
           description="What's available and what you'll allow on the property."
           onBack={() => setStep(1)} onNext={() => setStep(3)}
@@ -300,12 +308,12 @@ export function ListingForm({ listing }: { listing?: ListingRow }) {
 
       {step === 3 && (
         <StepShell
-          step={3} totalSteps={TOTAL_STEPS}
+          step={3 + stepOffset} totalSteps={totalSteps}
           title="Lease terms & values"
           description="What you're looking for in a tenant and how you'd like to work together."
           onBack={() => setStep(2)}
           onSubmit={handleSubmit}
-          submitLabel={isEdit ? 'Save changes' : 'Save listing'}
+          submitLabel={isEdit ? 'Save changes' : onboarding ? 'Submit listing' : 'Save listing'}
           loading={loading}
         >
           <FieldGroup label="Tenure arrangements offered" hint="Check all you'd consider — required">

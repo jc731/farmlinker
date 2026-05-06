@@ -7,16 +7,22 @@ const { profile } = Astro.locals;
 if (!profile?.roles.includes('landowner')) {
   return Astro.redirect('/app');
 }
+
+const onboarding = Astro.url.searchParams.get('onboarding') === '1';
 ---
 
-<AppLayout title="New listing">
+<AppLayout title={onboarding ? 'Complete your profile' : 'New listing'}>
   <div class="mx-auto max-w-2xl space-y-6">
     <div>
-      <h1 class="text-2xl font-bold">Create a listing</h1>
+      <h1 class="text-2xl font-bold">
+        {onboarding ? 'Your land listing' : 'Create a listing'}
+      </h1>
       <p class="text-muted-foreground">
-        Describe the land you have available. It will be saved as a draft until you submit it for review.
+        {onboarding
+          ? 'Tell us about the land you have available. This will be submitted for review along with your profile.'
+          : 'Describe the land you have available. It will be saved as a draft until you submit it for review.'}
       </p>
     </div>
-    <ListingForm client:load />
+    <ListingForm client:load onboarding={onboarding} />
   </div>
 </AppLayout>

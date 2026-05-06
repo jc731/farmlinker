@@ -159,7 +159,8 @@ so the platform can be re-skinned for different organizations or regions without
 
 ### Post-launch
 7. **Email notifications** — approval granted, inquiry received, new message
-8. **E11 white-label config** — when second org/client is engaged
+8. **Per-listing re-approval toggle** — currently approved landowners' new listings auto-approve (skip the queue). Add an admin-configurable setting to require re-approval for every listing regardless of landowner status.
+9. **E11 white-label config** — when second org/client is engaged
 9. **Listing archival UX** — landowner can archive their own listing
 10. **Farmer profile visibility** — landowners can see approved farmer profiles (currently one-directional)
 
