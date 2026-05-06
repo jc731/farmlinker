@@ -159,8 +159,10 @@ so the platform can be re-skinned for different organizations or regions without
 
 ### Post-launch
 7. **Email notifications** — approval granted, inquiry received, new message
-8. **Per-listing re-approval toggle** — currently approved landowners' new listings auto-approve (skip the queue). Add an admin-configurable setting to require re-approval for every listing regardless of landowner status.
-9. **E11 white-label config** — when second org/client is engaged
+8. **Automated / end-to-end testing** — no test suite exists yet. Candidates: Playwright for critical user journeys (farmer onboard → approve → browse → inquire; landowner onboard → listing approve → receive inquiry), Vitest for API route unit tests. Should cover the 11 UX gaps surfaced in the May 2026 concept-testing session before those flows are considered production-ready.
+9. **Admin rejection reason for users** — user rejections currently have no reason field (unlike listings). Would need a `rejection_reason` column on `profiles`, a UI input on the reject action (modal or inline), and a display on the user's dashboard. Deferred: not blocking MVP, low volume, contact email is the fallback.
+10. **Per-listing re-approval toggle** — currently approved landowners' new listings auto-approve (skip the queue). Add an admin-configurable setting to require re-approval for every listing regardless of landowner status.
+10. **E11 white-label config** — when second org/client is engaged
 9. **Listing archival UX** — landowner can archive their own listing
 10. **Farmer profile visibility** — landowners can see approved farmer profiles (currently one-directional)
 

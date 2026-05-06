@@ -3,9 +3,10 @@ import AppLayout from '@/layouts/AppLayout.astro';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const { profile } = Astro.locals;
-const isPending = profile?.status === 'pending';
+const isPending  = profile?.status === 'pending';
 const isApproved = profile?.status === 'approved';
-const isFarmer = profile?.roles.includes('farmer');
+const isRejected = profile?.status === 'rejected';
+const isFarmer   = profile?.roles.includes('farmer');
 const isLandowner = profile?.roles.includes('landowner');
 ---
 
@@ -21,6 +22,18 @@ const isLandowner = profile?.roles.includes('landowner');
         {isApproved && <span class="ml-1">· Approved</span>}
       </p>
     </div>
+
+    {isRejected && (
+      <Card>
+        <CardHeader>
+          <CardTitle>Application not approved</CardTitle>
+          <CardDescription>
+            Your application was not approved at this time. If you have questions,
+            please contact us at <a href="mailto:hello@farmlinker.com" class="text-primary hover:underline">hello@farmlinker.com</a>.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )}
 
     {isPending && (
       <Card>

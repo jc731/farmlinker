@@ -12,12 +12,15 @@ const [
   { data: landownerProfile },
   { data: farmerDemo },
   { data: landownerDemo },
+  { data: listings },
 ] = await Promise.all([
   supabase.from('profiles').select('*').eq('id', id).single(),
   supabase.from('farmer_profiles').select('*').eq('profile_id', id).single(),
   supabase.from('landowner_profiles').select('*').eq('profile_id', id).single(),
   supabase.from('farmer_demographics').select('*').eq('profile_id', id).single(),
   supabase.from('landowner_demographics').select('*').eq('profile_id', id).single(),
+  supabase.from('listings').select('id, property_name, county, total_acreage, status, created_at')
+    .eq('owner_profile_id', id).order('created_at', { ascending: false }),
 ]);
 
 if (!profile) return Astro.redirect('/admin/users');
@@ -168,6 +171,38 @@ const display = (v: FieldValue) => {
     {isLandowner && !landownerProfile && (
       <div class="rounded-lg border bg-white p-6 shadow-sm text-sm text-muted-foreground">
         Landowner profile not yet completed.
+      </div>
+    )}
+
+    <!-- Landowner listings -->
+    {isLandowner && (
+      <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 class="mb-4 font-semibold">Listings</h2>
+        {!listings?.length ? (
+          <p class="text-sm text-muted-foreground">No listings yet.</p>
+        ) : (
+          <div class="divide-y text-sm">
+            {listings.map(l => (
+              <div class="flex items-center justify-between py-2.5">
+                <div>
+                  <span class="font-medium">
+                    {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
+                  </span>
+                  <span class="ml-2 text-muted-foreground">
+                    {l.county ? `${l.county} County` : ''}
+                    {l.total_acreage ? ` · ${l.total_acreage} ac` : ''}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class:list={['rounded-full px-2 py-0.5 text-xs font-medium capitalize', STATUS_COLORS[l.status] ?? '']}>
+                    {l.status}
+                  </span>
+                  <a href={`/admin/listings/${l.id}`} class="text-xs text-primary hover:underline">Review →</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )}
 

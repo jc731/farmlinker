@@ -18,7 +18,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isAdminRoute    = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   const isAuthRoute     = AUTH_ROUTES.some(r => pathname.startsWith(r));
   const isOnboarding    = pathname.startsWith('/app/onboarding');
-  const isNewListing    = pathname === '/app/listings/new';
+  const isListingsArea  = pathname.startsWith('/app/listings');
 
   if (isAuthRoute && user) {
     return redirect('/app');
@@ -56,8 +56,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
       if (needsFarmer || (isIncomplete && profile.roles.includes('farmer'))) return redirect('/app/onboarding/farmer');
       if (needsLandowner) return redirect('/app/onboarding/landowner');
-      // Landowner completed their profile form but hasn't submitted a listing yet
-      if (!isNewListing && isIncomplete && isLandowner) return redirect('/app/listings/new?onboarding=1');
+      // Landowner completed their profile form but hasn't submitted a listing yet.
+      // Allow /app/listings/* so they can reach a draft listing and submit it.
+      if (!isListingsArea && isIncomplete && isLandowner) return redirect('/app/listings/new?onboarding=1');
     }
   }
 

@@ -133,6 +133,7 @@ export function LandownerProfileForm() {
           description="This information is used for grant reporting and program evaluation only. It is kept confidential and never shown to other users."
           onBack={() => setStep(1)}
           onSubmit={handleSubmit}
+          submitLabel="Continue to listing"
           loading={loading}
         >
           <FieldGroup label="Gender">
