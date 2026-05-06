@@ -1,6 +1,7 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { fmtNum, displayArr, displayBool } from '@/lib/format';
 
 const { supabase, profile } = Astro.locals;
 const { id } = Astro.params;
@@ -60,11 +61,7 @@ if (rawMedia && rawMedia.length > 0) {
     .filter(m => m.url);
 }
 
-const hasPhotos   = photos.length > 0;
-const displayArr  = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
-const displayBool = (v: boolean | null | undefined) =>
-  v === true ? 'Yes' : v === false ? 'No' : '—';
-const fmt = (v: number | null) => v != null ? v.toLocaleString() : null;
+const hasPhotos = photos.length > 0;
 ---
 
 <AppLayout title={listing.property_name ?? 'Listing'}>
@@ -215,21 +212,21 @@ const fmt = (v: number | null) => v != null ? v.toLocaleString() : null;
 
     <!-- Key stats strip -->
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-      {fmt(listing.total_acreage) && (
+      {listing.total_acreage != null && (
         <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold">{fmt(listing.total_acreage)}</div>
+          <div class="text-2xl font-bold">{fmtNum(listing.total_acreage)}</div>
           <div class="text-xs text-muted-foreground">Total acres</div>
         </div>
       )}
-      {fmt(listing.farmable_acreage) && (
+      {listing.farmable_acreage != null && (
         <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold">{fmt(listing.farmable_acreage)}</div>
+          <div class="text-2xl font-bold">{fmtNum(listing.farmable_acreage)}</div>
           <div class="text-xs text-muted-foreground">Farmable acres</div>
         </div>
       )}
-      {fmt(listing.natural_area_acreage) && (
+      {listing.natural_area_acreage != null && (
         <div class="rounded-lg border bg-white p-4 text-center shadow-sm">
-          <div class="text-2xl font-bold">{fmt(listing.natural_area_acreage)}</div>
+          <div class="text-2xl font-bold">{fmtNum(listing.natural_area_acreage)}</div>
           <div class="text-xs text-muted-foreground">Natural area acres</div>
         </div>
       )}

@@ -1,5 +1,7 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import PageHeader from '@/components/PageHeader.astro';
 import DataTable from '@/components/DataTable.astro';
 import Th from '@/components/Th.astro';
 import Tr from '@/components/Tr.astro';
@@ -36,18 +38,19 @@ function otherParty(inq: typeof inquiries extends (infer T)[] | null ? T : never
 
 <AppLayout title="My inquiries">
   <div class="space-y-6">
-    <div>
-      <h1 class="text-2xl font-bold">Inquiries</h1>
-      <p class="text-sm text-muted-foreground">Messages between you and other parties about a listing.</p>
-    </div>
+    <PageHeader
+      title="Inquiries"
+      description="Messages between you and other parties about a listing."
+    />
 
     {!inquiries?.length ? (
-      <div class="rounded-lg border bg-white p-16 text-center text-muted-foreground shadow-sm">
-        No inquiries yet.
+      <EmptyState message="No inquiries yet.">
         {profile.roles.includes('farmer') && (
-          <span> <a href="/app/browse" class="text-primary hover:underline">Browse listings</a> to send your first inquiry.</span>
+          <p class="mt-2 text-sm">
+            <a href="/app/browse" class="text-primary hover:underline">Browse listings</a> to send your first inquiry.
+          </p>
         )}
-      </div>
+      </EmptyState>
     ) : (
       <DataTable>
         <tr slot="head">

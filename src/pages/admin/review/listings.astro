@@ -1,7 +1,10 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import Modal from '@/components/Modal.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import PageHeader from '@/components/PageHeader.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { fmtDate, fmtNum, display, displayArr, displayBool } from '@/lib/format';
 
 const admin = createSupabaseAdminClient();
 
@@ -25,14 +28,6 @@ function calcCompletion(l: Record<string, any>): number {
   return Math.round((filled / fields.length) * 100);
 }
 
-const display    = (v: string | null | undefined) => v || '—';
-const displayArr = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
-const displayBool = (v: boolean | null | undefined) =>
-  v === true ? 'Yes' : v === false ? 'No' : '—';
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
-  month: 'short', day: 'numeric', year: 'numeric',
-});
-const fmtNum = (v: number | null) => v != null ? v.toLocaleString() : '—';
 
 const listings = (pending ?? []).map(l => ({
   ...l,
@@ -44,18 +39,12 @@ const listings = (pending ?? []).map(l => ({
 <AdminLayout title="Pending listings">
   <div class="space-y-6">
 
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Pending listings</h1>
-        <p class="text-sm text-muted-foreground">{listings.length} awaiting review</p>
-      </div>
-      <a href="/admin/listings" class="text-sm text-primary hover:underline">View all listings →</a>
-    </div>
+    <PageHeader title="Pending listings" description={`${listings.length} awaiting review`}>
+      <a slot="action" href="/admin/listings" class="text-sm text-primary hover:underline">View all listings →</a>
+    </PageHeader>
 
     {listings.length === 0 && (
-      <div class="rounded-lg border bg-white p-12 text-center text-muted-foreground shadow-sm">
-        No pending listings — you're all caught up.
-      </div>
+      <EmptyState message="No pending listings — you're all caught up." />
     )}
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -85,7 +74,7 @@ const listings = (pending ?? []).map(l => ({
                 {l.owner ? `${l.owner.first_name} ${l.owner.last_name}` : '—'}
                 {l.owner?.email ? ` · ${l.owner.email}` : ''}
               </p>
-              <p class="mt-0.5 text-xs text-muted-foreground">Submitted {fmt(l.created_at)}</p>
+              <p class="mt-0.5 text-xs text-muted-foreground">Submitted {fmtDate(l.created_at)}</p>
 
               <!-- Completion bar -->
               <div class="mt-4">

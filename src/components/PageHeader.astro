@@ -1,0 +1,31 @@
+---
+/**
+ * Standard page-level heading row.
+ *
+ * Usage:
+ *   <!-- Title only -->
+ *   <PageHeader title="All users" />
+ *
+ *   <!-- With subtitle -->
+ *   <PageHeader title="Browse farmland" description="12 listings available" />
+ *
+ *   <!-- With right-side action (link, button, stat cluster, etc.) -->
+ *   <PageHeader title="My listings">
+ *     <a slot="action" href="/app/listings/new" class="btn-primary">+ New listing</a>
+ *   </PageHeader>
+ */
+
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description } = Astro.props;
+---
+
+<div class="flex items-center justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold">{title}</h1>
+    {description && <p class="text-sm text-muted-foreground">{description}</p>}
+  </div>
+  <slot name="action" />
+</div>

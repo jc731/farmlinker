@@ -1,0 +1,23 @@
+---
+/**
+ * Centered empty-state card.
+ *
+ * Usage:
+ *   <EmptyState message="No listings yet." />
+ *
+ *   <!-- With a CTA: -->
+ *   <EmptyState message="No listings yet.">
+ *     <a href="/app/listings/new" class="mt-4 inline-block ...">Create one</a>
+ *   </EmptyState>
+ */
+
+interface Props {
+  message?: string;
+}
+const { message } = Astro.props;
+---
+
+<div class="rounded-lg border bg-white p-12 text-center text-muted-foreground shadow-sm">
+  {message && <p>{message}</p>}
+  <slot />
+</div>

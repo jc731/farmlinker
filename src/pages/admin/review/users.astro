@@ -1,6 +1,9 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import Modal from '@/components/Modal.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import PageHeader from '@/components/PageHeader.astro';
+import { fmtDate, display } from '@/lib/format';
 
 const { supabase } = Astro.locals;
 
@@ -69,16 +72,6 @@ function calcCompletion(
   return total > 0 ? Math.round((filled / total) * 100) : 0;
 }
 
-const display = (v: string | string[] | number | boolean | null | undefined): string => {
-  if (v == null || v === '') return '—';
-  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
-  if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
-  return String(v);
-};
-
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
-  month: 'short', day: 'numeric', year: 'numeric',
-});
 
 const LISTING_STATUS: Record<string, string> = {
   draft:    'bg-zinc-100 text-zinc-600',
@@ -103,18 +96,12 @@ const users = (pending ?? []).map(u => {
 <AdminLayout title="Pending users">
   <div class="space-y-6">
 
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Pending users</h1>
-        <p class="text-sm text-muted-foreground">{users.length} awaiting review</p>
-      </div>
-      <a href="/admin/users" class="text-sm text-primary hover:underline">View all users →</a>
-    </div>
+    <PageHeader title="Pending users" description={`${users.length} awaiting review`}>
+      <a slot="action" href="/admin/users" class="text-sm text-primary hover:underline">View all users →</a>
+    </PageHeader>
 
     {users.length === 0 && (
-      <div class="rounded-lg border bg-white p-12 text-center text-muted-foreground shadow-sm">
-        No pending users — you're all caught up.
-      </div>
+      <EmptyState message="No pending users — you're all caught up." />
     )}
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -138,7 +125,7 @@ const users = (pending ?? []).map(u => {
               </div>
 
               <!-- Joined date -->
-              <p class="mt-2 text-xs text-muted-foreground">Submitted {fmt(u.created_at)}</p>
+              <p class="mt-2 text-xs text-muted-foreground">Submitted {fmtDate(u.created_at)}</p>
 
               <!-- Completion bar -->
               <div class="mt-4">
@@ -223,7 +210,7 @@ const users = (pending ?? []).map(u => {
                 <div><dt class="text-muted-foreground">State</dt><dd>{display(u.state)}</dd></div>
                 <div><dt class="text-muted-foreground">Zip</dt><dd>{display(u.zip)}</dd></div>
                 <div><dt class="text-muted-foreground">Terms accepted</dt><dd>{display(u.terms_accepted)}</dd></div>
-                <div><dt class="text-muted-foreground">Submitted</dt><dd>{fmt(u.created_at)}</dd></div>
+                <div><dt class="text-muted-foreground">Submitted</dt><dd>{fmtDate(u.created_at)}</dd></div>
               </dl>
             </section>
 
@@ -296,7 +283,7 @@ const users = (pending ?? []).map(u => {
                                   : l.total_acreage != null ? `${l.total_acreage} ac total` : null,
                               ].filter(Boolean).join(' · ') || '—'}
                             </p>
-                            <p class="text-xs text-muted-foreground">Created {fmt(l.created_at)}</p>
+                            <p class="text-xs text-muted-foreground">Created {fmtDate(l.created_at)}</p>
                           </div>
                           <div class="flex shrink-0 flex-col items-end gap-1.5">
                             <span class:list={['rounded-full px-2 py-0.5 text-xs font-medium capitalize', LISTING_STATUS[l.status] ?? 'bg-muted text-muted-foreground']}>

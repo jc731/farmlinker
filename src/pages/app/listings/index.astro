@@ -4,6 +4,9 @@ import DataTable from '@/components/DataTable.astro';
 import Th from '@/components/Th.astro';
 import Tr from '@/components/Tr.astro';
 import Td from '@/components/Td.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import PageHeader from '@/components/PageHeader.astro';
+import { fmtDate } from '@/lib/format';
 
 const { supabase, profile } = Astro.locals;
 
@@ -25,33 +28,29 @@ const STATUS_COLORS: Record<string, string> = {
   archived: 'bg-zinc-100 text-zinc-500',
 };
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
-  month: 'short', day: 'numeric', year: 'numeric',
-});
 ---
 
 <AppLayout title="My listings">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">My listings</h1>
+    <PageHeader title="My listings">
       <a
+        slot="action"
         href="/app/listings/new"
         class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
       >
         + New listing
       </a>
-    </div>
+    </PageHeader>
 
     {(!listings || listings.length === 0) ? (
-      <div class="rounded-lg border bg-white p-12 text-center shadow-sm">
-        <p class="text-muted-foreground">No listings yet.</p>
+      <EmptyState message="No listings yet.">
         <a
           href="/app/listings/new"
           class="mt-4 inline-block rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
           Create your first listing
         </a>
-      </div>
+      </EmptyState>
     ) : (
       <DataTable>
         <tr slot="head">
@@ -76,7 +75,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
                 {l.status}
               </span>
             </Td>
-            <Td class="text-muted-foreground">{fmt(l.created_at)}</Td>
+            <Td class="text-muted-foreground">{fmtDate(l.created_at)}</Td>
             <Td>
               <a href={`/app/listings/${l.id}`} class="text-xs text-primary hover:underline">View →</a>
             </Td>

@@ -159,7 +159,8 @@ All immediate and short-term pre-launch items shipped:
 1. **Browse search/filter** — county + acreage filter on `/app/browse` (high value, stretch)
 
 ### Post-launch
-7. **Email notifications** — approval granted, inquiry received, new message
+7. **Site config / theme system** — Status badge colors (`STATUS_COLORS`, `LISTING_STATUS_COLORS`) are currently hardcoded in `src/lib/status-colors.ts` (to be extracted). These, along with virtually all theme values (primary color, brand name, logo, copy), should eventually be driven by a `site_config` table in Supabase, fetched at request time by middleware and injected into locals. This enables true white-labeling (E11) and admin-controlled branding without a redeploy. Requires: DB table, middleware fetch, component updates. Not urgent — hardcoded values are fine for single-org MVP.
+8. **Email notifications** — approval granted, inquiry received, new message
 8. **Automated / end-to-end testing** — no test suite exists yet. Candidates: Playwright for critical user journeys (farmer onboard → approve → browse → inquire; landowner onboard → listing approve → receive inquiry), Vitest for API route unit tests. Should cover the 11 UX gaps surfaced in the May 2026 concept-testing session before those flows are considered production-ready.
 9. **Admin rejection reason for users** — user rejections currently have no reason field (unlike listings). Would need a `rejection_reason` column on `profiles`, a UI input on the reject action (modal or inline), and a display on the user's dashboard. Deferred: not blocking MVP, low volume, contact email is the fallback.
 10. **Per-listing re-approval toggle** — currently approved landowners' new listings auto-approve (skip the queue). Add an admin-configurable setting to require re-approval for every listing regardless of landowner status.

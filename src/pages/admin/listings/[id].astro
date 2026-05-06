@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { fmtNum, display, displayArr, displayBool } from '@/lib/format';
 
 const { id } = Astro.params;
 if (!id) return Astro.redirect('/admin/review/listings');
@@ -30,11 +31,6 @@ const STATUS_COLORS: Record<string, string> = {
   archived: 'bg-zinc-100 text-zinc-500',
 };
 
-const display    = (v: string | null | undefined) => v || '—';
-const displayArr = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
-const displayBool = (v: boolean | null | undefined) =>
-  v === true ? 'Yes' : v === false ? 'No' : '—';
-const fmt = (v: number | null) => v != null ? v.toLocaleString() : '—';
 
 ---
 
@@ -98,9 +94,9 @@ const fmt = (v: number | null) => v != null ? v.toLocaleString() : '—';
     <div class="rounded-lg border bg-white p-6 shadow-sm">
       <h2 class="mb-4 font-semibold">Property details</h2>
       <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
-        <div><dt class="text-muted-foreground">Total acreage</dt><dd>{fmt(listing.total_acreage)} ac</dd></div>
-        <div><dt class="text-muted-foreground">Farmable</dt><dd>{fmt(listing.farmable_acreage)} ac</dd></div>
-        <div><dt class="text-muted-foreground">Natural area</dt><dd>{fmt(listing.natural_area_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Total acreage</dt><dd>{fmtNum(listing.total_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Farmable</dt><dd>{fmtNum(listing.farmable_acreage)} ac</dd></div>
+        <div><dt class="text-muted-foreground">Natural area</dt><dd>{fmtNum(listing.natural_area_acreage)} ac</dd></div>
         <div><dt class="text-muted-foreground">Certified organic / eligible</dt><dd>{displayBool(listing.certified_organic_or_eligible)}</dd></div>
         <div><dt class="text-muted-foreground">Zoning appropriate</dt><dd>{displayBool(listing.zoning_appropriate)}</dd></div>
         <div><dt class="text-muted-foreground">Conservation easement</dt><dd>{displayBool(listing.conservation_easement)}</dd></div>

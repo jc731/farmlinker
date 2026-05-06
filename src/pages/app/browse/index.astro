@@ -1,6 +1,8 @@
 ---
 import AppLayout from '@/layouts/AppLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import EmptyState from '@/components/EmptyState.astro';
+import PageHeader from '@/components/PageHeader.astro';
 
 const { supabase } = Astro.locals;
 
@@ -49,17 +51,13 @@ const count = listings?.length ?? 0;
 
 <AppLayout title="Browse listings">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold">Browse farmland</h1>
-        <p class="text-sm text-muted-foreground">{count} listing{count !== 1 ? 's' : ''} available</p>
-      </div>
-    </div>
+    <PageHeader
+      title="Browse farmland"
+      description={`${count} listing${count !== 1 ? 's' : ''} available`}
+    />
 
     {count === 0 ? (
-      <div class="rounded-lg border bg-white p-16 text-center text-muted-foreground shadow-sm">
-        No approved listings yet — check back soon.
-      </div>
+      <EmptyState message="No approved listings yet — check back soon." />
     ) : (
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {(listings ?? []).map(l => {

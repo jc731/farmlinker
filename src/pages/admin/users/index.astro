@@ -5,6 +5,8 @@ import Th from '@/components/Th.astro';
 import ThSortable from '@/components/ThSortable.astro';
 import Tr from '@/components/Tr.astro';
 import Td from '@/components/Td.astro';
+import PageHeader from '@/components/PageHeader.astro';
+import { fmtDate } from '@/lib/format';
 
 const { supabase } = Astro.locals;
 
@@ -43,9 +45,6 @@ const STATUS_COLORS: Record<string, string> = {
   suspended:  'bg-zinc-100 text-zinc-700',
 };
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
-  month: 'short', day: 'numeric', year: 'numeric',
-});
 
 const filterOptions = ['all', 'incomplete', 'pending', 'approved', 'rejected', 'suspended'];
 
@@ -61,10 +60,9 @@ function sortHref(col: string) {
 
 <AdminLayout title="All users">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold">All users</h1>
-      <span class="text-sm text-muted-foreground">{users?.length ?? 0} shown</span>
-    </div>
+    <PageHeader title="All users">
+      <span slot="action" class="text-sm text-muted-foreground">{users?.length ?? 0} shown</span>
+    </PageHeader>
 
     <div class="flex gap-2">
       {filterOptions.map(s => (
@@ -105,7 +103,7 @@ function sortHref(col: string) {
               {user.status}
             </span>
           </Td>
-          <Td class="text-muted-foreground">{fmt(user.created_at)}</Td>
+          <Td class="text-muted-foreground">{fmtDate(user.created_at)}</Td>
           <Td>
             <a href={`/admin/users/${user.id}`} class="text-xs text-primary hover:underline">View →</a>
           </Td>
