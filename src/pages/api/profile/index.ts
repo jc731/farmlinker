@@ -41,11 +41,21 @@ export const POST: APIRoute = async ({ request, locals, redirect }) => {
     });
   }
 
-  // ── Landowner profile ───────────────────────────────────────────────────────
+  // ── Landowner profile + demographics ────────────────────────────────────────
   if (profile.roles.includes('landowner')) {
     await supabase.from('landowner_profiles').upsert({
       profile_id:      profile.id,
       referral_source: get('referral_source'),
+    });
+
+    await supabase.from('landowner_demographics').upsert({
+      profile_id:       profile.id,
+      gender:           get('lo_gender'),
+      age_range:        get('lo_age_range'),
+      veteran_status:   get('lo_veteran_status'),
+      ethnicity:        get('lo_ethnicity'),
+      race:             getArr('lo_race'),
+      disability_status:get('lo_disability_status'),
     });
   }
 

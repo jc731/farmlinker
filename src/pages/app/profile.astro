@@ -4,7 +4,8 @@ import {
   ILLINOIS_COUNTIES, FARMING_STATUS_OPTIONS, ACREAGE_RANGE_OPTIONS,
   TENURE_OPTIONS, CROP_OPTIONS, LIVESTOCK_OPTIONS, FARMING_METHOD_OPTIONS,
   INFRASTRUCTURE_OPTIONS, EXPERIENCE_OPTIONS, BUSINESS_PLAN_OPTIONS,
-  REFERRAL_OPTIONS,
+  REFERRAL_OPTIONS, GENDER_OPTIONS, AGE_RANGE_OPTIONS, VETERAN_OPTIONS,
+  RACE_OPTIONS, ETHNICITY_OPTIONS, DISABILITY_OPTIONS,
 } from '@/lib/onboarding-options';
 
 const { supabase, profile: localProfile } = Astro.locals;
@@ -16,13 +17,22 @@ const isFarmer    = localProfile.roles.includes('farmer');
 const isLandowner = localProfile.roles.includes('landowner');
 
 // Fetch full profile (middleware only stores a slim subset for routing)
-const [{ data: profile }, { data: farmerProfile }, { data: landownerProfile }, { data: myListings }] = await Promise.all([
+const [
+  { data: profile },
+  { data: farmerProfile },
+  { data: landownerProfile },
+  { data: landownerDemo },
+  { data: myListings },
+] = await Promise.all([
   supabase.from('profiles').select('*').eq('id', localProfile.id).single(),
   isFarmer
     ? supabase.from('farmer_profiles').select('*').eq('profile_id', localProfile.id).maybeSingle()
     : Promise.resolve({ data: null }),
   isLandowner
     ? supabase.from('landowner_profiles').select('*').eq('profile_id', localProfile.id).maybeSingle()
+    : Promise.resolve({ data: null }),
+  isLandowner
+    ? supabase.from('landowner_demographics').select('*').eq('profile_id', localProfile.id).maybeSingle()
     : Promise.resolve({ data: null }),
   isLandowner
     ? supabase.from('listings')
@@ -299,6 +309,7 @@ function listingAcreage(l: { farmable_acreage: number | null; total_acreage: num
       {isLandowner && (
         <div class={sectionCls}>
           <h2 class="font-semibold">Landowner details</h2>
+
           <div>
             <label for="lo_referral" class={labelCls}>How did you hear about us?</label>
             <select id="lo_referral" name="referral_source" class={inputCls}>
@@ -308,33 +319,76 @@ function listingAcreage(l: { farmable_acreage: number | null; total_acreage: num
               ))}
             </select>
           </div>
+
+          <h3 class="pt-2 text-sm font-medium text-muted-foreground">
+            Demographics
+            <span class="ml-1 font-normal">(optional — used for grant reporting only, kept confidential)</span>
+          </h3>
+
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="lo_gender" class={labelCls}>Gender</label>
+              <select id="lo_gender" name="lo_gender" class={inputCls}>
+                <option value="">Prefer not to say</option>
+                {GENDER_OPTIONS.map(o => (
+                  <option value={o} selected={landownerDemo?.gender === o}>{o}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label for="lo_age_range" class={labelCls}>Age range</label>
+              <select id="lo_age_range" name="lo_age_range" class={inputCls}>
+                <option value="">Prefer not to say</option>
+                {AGE_RANGE_OPTIONS.map(o => (
+                  <option value={o} selected={landownerDemo?.age_range === o}>{o}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label for="lo_veteran" class={labelCls}>Veteran status</label>
+              <select id="lo_veteran" name="lo_veteran_status" class={inputCls}>
+                <option value="">Prefer not to say</option>
+                {VETERAN_OPTIONS.map(o => (
+                  <option value={o} selected={landownerDemo?.veteran_status === o}>{o}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label for="lo_ethnicity" class={labelCls}>Ethnicity</label>
+              <select id="lo_ethnicity" name="lo_ethnicity" class={inputCls}>
+                <option value="">Prefer not to say</option>
+                {ETHNICITY_OPTIONS.map(o => (
+                  <option value={o} selected={landownerDemo?.ethnicity === o}>{o}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <span class={labelCls}>Race <span class="font-normal text-muted-foreground">(check all that apply)</span></span>
+            <div class="mt-2 grid grid-cols-1 gap-y-1.5 text-sm sm:grid-cols-2">
+              {RACE_OPTIONS.map(o => (
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" name="lo_race" value={o}
+                    checked={checked(landownerDemo?.race, o)}
+                    class="h-4 w-4 rounded border-input text-primary" />
+                  {o}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label for="lo_disability" class={labelCls}>Disability status</label>
+            <select id="lo_disability" name="lo_disability_status" class={inputCls}>
+              <option value="">Prefer not to say</option>
+              {DISABILITY_OPTIONS.map(o => (
+                <option value={o} selected={landownerDemo?.disability_status === o}>{o}</option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
-
-      <!-- Account info (read-only) -->
-      <div class={sectionCls}>
-        <h2 class="font-semibold">Account</h2>
-        <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
-          <div>
-            <dt class="text-muted-foreground">Role</dt>
-            <dd class="font-medium capitalize">{(localProfile.roles as string[]).join(' & ')}</dd>
-          </div>
-          <div>
-            <dt class="text-muted-foreground">Status</dt>
-            <dd class:list={[
-              'font-medium capitalize',
-              localProfile.status === 'approved'   ? 'text-green-600' :
-              localProfile.status === 'pending'    ? 'text-amber-600' :
-              localProfile.status === 'incomplete' ? 'text-blue-600'  : 'text-red-600',
-            ]}>{localProfile.status}</dd>
-          </div>
-          <div>
-            <dt class="text-muted-foreground">Member since</dt>
-            <dd>{new Date(profile.created_at).toLocaleDateString()}</dd>
-          </div>
-        </dl>
-        <p class="text-xs text-muted-foreground">Role and status are managed by admins and cannot be changed here.</p>
-      </div>
 
       <div class="flex justify-end">
         <button
@@ -347,7 +401,7 @@ function listingAcreage(l: { farmable_acreage: number | null; total_acreage: num
 
     </form>
 
-    <!-- Listings (landowners only) -->
+    <!-- Listings (landowners only — sits just below landowner details) -->
     {isLandowner && (
       <div class={sectionCls}>
         <div class="flex items-center justify-between">
@@ -389,6 +443,31 @@ function listingAcreage(l: { farmable_acreage: number | null; total_acreage: num
         )}
       </div>
     )}
+
+    <!-- Account info (read-only) -->
+    <div class={sectionCls}>
+      <h2 class="font-semibold">Account</h2>
+      <dl class="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+        <div>
+          <dt class="text-muted-foreground">Role</dt>
+          <dd class="font-medium capitalize">{(localProfile.roles as string[]).join(' & ')}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">Status</dt>
+          <dd class:list={[
+            'font-medium capitalize',
+            localProfile.status === 'approved'   ? 'text-green-600' :
+            localProfile.status === 'pending'    ? 'text-amber-600' :
+            localProfile.status === 'incomplete' ? 'text-blue-600'  : 'text-red-600',
+          ]}>{localProfile.status}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">Member since</dt>
+          <dd>{new Date(profile.created_at).toLocaleDateString()}</dd>
+        </div>
+      </dl>
+      <p class="text-xs text-muted-foreground">Role and status are managed by admins and cannot be changed here.</p>
+    </div>
 
   </div>
 </AppLayout>
