@@ -84,7 +84,7 @@ const isSignedIn = !!profile;
 
     <!-- ── Stats strip ────────────────────────────────────────────────────── -->
     <section class="border-y bg-white px-4 py-8">
-      <div class="mx-auto grid max-w-4xl grid-cols-3 gap-8 text-center">
+      <div class="mx-auto grid max-w-4xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
         <div>
           <div class="text-3xl font-bold text-primary">102</div>
           <div class="mt-1 text-sm text-muted-foreground">Illinois counties covered</div>
@@ -293,7 +293,7 @@ const isSignedIn = !!profile;
           reviews every farmer and landowner profile before granting full access — so when someone
           reaches out to you, you know they're serious.
         </p>
-        <div class="mt-8 grid grid-cols-3 gap-6 text-center">
+        <div class="mt-8 grid grid-cols-1 gap-6 text-center sm:grid-cols-3">
           {[
             { label: 'Farmer profiles', desc: 'Reviewed for experience, goals, and fit' },
             { label: 'Landowner listings', desc: 'Approved before appearing in browse' },
@@ -305,6 +305,62 @@ const isSignedIn = !!profile;
             </div>
           ))}
         </div>
+      </div>
+    </section>
+
+    <!-- ── FAQ ───────────────────────────────────────────────────────────────── -->
+    <section class="px-4 py-20">
+      <div class="mx-auto max-w-3xl">
+        <div class="mb-10 text-center">
+          <h2 class="text-3xl font-bold">Common questions</h2>
+          <p class="mt-3 text-muted-foreground">Everything you need to know before getting started.</p>
+        </div>
+        <div class="divide-y rounded-2xl border bg-white shadow-sm">
+          {[
+            {
+              q: 'Is Farmlinker free to use?',
+              a: "Yes — free to join, free to list, free to inquire. Farmlinker charges no commission or transaction fees. Our goal is to make quality land connections accessible to farmers at every stage.",
+            },
+            {
+              q: 'How long does the approval process take?',
+              a: "Most profiles are reviewed within a few business days. We read every application manually — we're not just checking a box, we're making sure the match is worth your time.",
+            },
+            {
+              q: 'What counties does Farmlinker cover?',
+              a: "We're currently focused on Illinois and cover all 102 counties. Our mission is to serve the full state, from Cook County to the southernmost tip.",
+            },
+            {
+              q: 'What happens after I\'m approved as a farmer?',
+              a: "You'll get full access to browse approved land listings, filter by county and acreage, and send direct inquiries to landowners. Your profile is visible to any landowner you reach out to.",
+            },
+            {
+              q: 'What happens after my listing is approved as a landowner?',
+              a: "Your listing goes live in the browse directory and approved farmers can send you inquiries. You'll see their full profile before deciding whether to respond — no pressure, no bidding.",
+            },
+            {
+              q: 'Can I list more than one property?',
+              a: "Absolutely. Landowners can create and manage multiple listings. Each listing goes through its own review before going live.",
+            },
+            {
+              q: 'Is my address shared publicly?',
+              a: "No. Your street address is only shared after an inquiry is started — and only with the farmer who reached out. The county and city are shown on the public listing.",
+            },
+          ].map(({ q, a }) => (
+            <details class="group px-6 py-5">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-4 text-sm font-semibold">
+                {q}
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/>
+                </svg>
+              </summary>
+              <p class="mt-3 text-sm leading-relaxed text-muted-foreground">{a}</p>
+            </details>
+          ))}
+        </div>
+        <p class="mt-6 text-center text-sm text-muted-foreground">
+          Still have questions?{' '}
+          <a href="mailto:hello@farmlinker.com" class="text-primary hover:underline">hello@farmlinker.com</a>
+        </p>
       </div>
     </section>
 
@@ -357,6 +413,7 @@ const isSignedIn = !!profile;
               <li><a href="#how-it-works" class="hover:text-white">How it works</a></li>
               <li><a href="#for-farmers" class="hover:text-white">For farmers</a></li>
               <li><a href="#for-landowners" class="hover:text-white">For landowners</a></li>
+              <li><a href="mailto:hello@farmlinker.com" class="hover:text-white">hello@farmlinker.com</a></li>
             </ul>
           </div>
         </div>
