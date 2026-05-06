@@ -14,6 +14,7 @@ if (!profile?.roles.includes('landowner')) {
 const { data: listings } = await supabase
   .from('listings')
   .select('id, property_name, county, total_acreage, farmable_acreage, status, created_at')
+  .eq('owner_profile_id', profile.id)
   .order('created_at', { ascending: false });
 
 const STATUS_COLORS: Record<string, string> = {

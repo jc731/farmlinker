@@ -16,13 +16,19 @@ const isFarmer    = localProfile.roles.includes('farmer');
 const isLandowner = localProfile.roles.includes('landowner');
 
 // Fetch full profile (middleware only stores a slim subset for routing)
-const [{ data: profile }, { data: farmerProfile }, { data: landownerProfile }] = await Promise.all([
+const [{ data: profile }, { data: farmerProfile }, { data: landownerProfile }, { data: myListings }] = await Promise.all([
   supabase.from('profiles').select('*').eq('id', localProfile.id).single(),
   isFarmer
     ? supabase.from('farmer_profiles').select('*').eq('profile_id', localProfile.id).maybeSingle()
     : Promise.resolve({ data: null }),
   isLandowner
     ? supabase.from('landowner_profiles').select('*').eq('profile_id', localProfile.id).maybeSingle()
+    : Promise.resolve({ data: null }),
+  isLandowner
+    ? supabase.from('listings')
+        .select('id, property_name, county, total_acreage, farmable_acreage, status, created_at')
+        .eq('owner_profile_id', localProfile.id)
+        .order('created_at', { ascending: false })
     : Promise.resolve({ data: null }),
 ]);
 
@@ -36,6 +42,20 @@ const checked = (arr: string[] | null | undefined, val: string) =>
 const inputCls = 'w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring';
 const labelCls = 'block text-sm font-medium text-foreground mb-1';
 const sectionCls = 'rounded-lg border bg-white p-6 shadow-sm space-y-5';
+
+const LISTING_STATUS_COLORS: Record<string, string> = {
+  draft:    'bg-zinc-100 text-zinc-600',
+  pending:  'bg-amber-100 text-amber-700',
+  approved: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
+  archived: 'bg-zinc-100 text-zinc-500',
+};
+
+function listingAcreage(l: { farmable_acreage: number | null; total_acreage: number | null }) {
+  if (l.farmable_acreage != null) return `${l.farmable_acreage} ac farmable`;
+  if (l.total_acreage != null)    return `${l.total_acreage} ac total`;
+  return null;
+}
 ---
 
 <AppLayout title="My profile">
@@ -326,5 +346,49 @@ const sectionCls = 'rounded-lg border bg-white p-6 shadow-sm space-y-5';
       </div>
 
     </form>
+
+    <!-- Listings (landowners only) -->
+    {isLandowner && (
+      <div class={sectionCls}>
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold">My listings</h2>
+          <a
+            href="/app/listings/new"
+            class="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            + New listing
+          </a>
+        </div>
+
+        {(!myListings || myListings.length === 0) ? (
+          <p class="text-sm text-muted-foreground">
+            No listings yet.{' '}
+            <a href="/app/listings/new" class="text-primary hover:underline">Create your first listing →</a>
+          </p>
+        ) : (
+          <div class="divide-y">
+            {myListings.map(l => (
+              <div class="flex items-center justify-between py-3 text-sm">
+                <div>
+                  <span class="font-medium">
+                    {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
+                  </span>
+                  <span class="ml-2 text-muted-foreground">
+                    {[l.county ? `${l.county} County` : null, listingAcreage(l)].filter(Boolean).join(' · ')}
+                  </span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class:list={['rounded-full px-2 py-0.5 text-xs font-medium capitalize', LISTING_STATUS_COLORS[l.status] ?? '']}>
+                    {l.status}
+                  </span>
+                  <a href={`/app/listings/${l.id}`} class="text-xs text-primary hover:underline">Manage →</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
+
   </div>
 </AppLayout>
