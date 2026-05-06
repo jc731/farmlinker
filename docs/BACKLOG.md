@@ -1,6 +1,6 @@
 # Farmlinker — Backlog
 
-Last updated: 2026-05-04
+Last updated: 2026-05-06
 
 ---
 
@@ -17,7 +17,7 @@ Last updated: 2026-05-04
 | E7 | Admin — listings | ✅ done | Review queue, approve/reject listings |
 | E8 | Discovery | ✅ done | Approved farmers browse and search listings |
 | E9 | Inquiries | ✅ done | Farmer → landowner non-realtime messaging |
-| E10 | Polish & launch prep | 🔜 next | Homepage, error pages, email notifications, deploy |
+| E10 | Polish & launch prep | ✅ done | Homepage, error pages, mobile audit, deploy config — email notifications deferred |
 | E11 | White-label / config | todo | Admin-controlled field sets, branding, org settings |
 
 ---
@@ -84,14 +84,14 @@ Last updated: 2026-05-04
 - [x] Admin can view all threads, send messages, block inquiries
 - [ ] Search/filter on browse (county, acreage, keyword) — post-MVP stretch
 
-### M7 — Polish & Deploy 🔜
+### M7 — Polish & Deploy ✅
 - [x] Profile edit page (`/app/profile`) — contact info + role-specific fields
-- [ ] **Homepage** — public marketing page with hero, how it works, dual CTA
-- [ ] 404 and error pages
-- [ ] Mobile-responsive audit
-- [ ] Email notifications (approval, inquiry received) — see E10 notes
-- [ ] Deploy config (Netlify or Vercel)
-- [ ] SSR data freshness audit (see note below)
+- [x] **Homepage** — hero, how it works, stats strip, trust band, FAQ accordion, dual CTA
+- [x] 404 and error pages — `404.astro` and `500.astro` served automatically by Netlify SSR adapter
+- [x] Mobile-responsive audit — app nav collapses contextual links below sm; homepage stat/trust grids responsive
+- [x] Deploy config (Netlify) — `netlify.toml` with build config and preview/branch dev tools flag
+- [ ] Email notifications (approval, inquiry received) — see E10 notes (post-launch)
+- [x] SSR data freshness audit — confirmed correct, no action needed (see note below)
 - [ ] Environment variable documentation finalized
 
 ---
@@ -147,15 +147,16 @@ so the platform can be re-skinned for different organizations or regions without
 
 ## Remaining Priorities (ordered)
 
-### Immediate — M7 in-progress
-1. **Homepage** — highest visibility, needed before any public launch
-2. **404 / error pages** — basic user experience minimum
-3. **Mobile audit** — test all key flows on small screens, fix critical breaks
+### M7 complete ✅ (2026-05-06)
+All immediate and short-term pre-launch items shipped:
+- Homepage (hero, how it works, stats, trust band, FAQ accordion, dual CTA, contact email)
+- 404 + 500 error pages served by Netlify SSR adapter automatically
+- Mobile audit complete — nav collapses contextual links; grid layouts responsive
+- Netlify deploy config (`netlify.toml`), preview/branch dev tools flag
+- SSR data freshness confirmed: every request hits Supabase fresh
 
-### Short-term — Pre-launch
-4. **Deploy config** — Netlify or Vercel adapter, env vars, preview deploys
-5. **SSR audit doc** — confirm Node adapter behavior at chosen host, add to README
-6. **Browse search/filter** — county + acreage filter on `/app/browse` (stretch but high value)
+### Short-term — Post-launch
+1. **Browse search/filter** — county + acreage filter on `/app/browse` (high value, stretch)
 
 ### Post-launch
 7. **Email notifications** — approval granted, inquiry received, new message
@@ -174,7 +175,7 @@ so the platform can be re-skinned for different organizations or regions without
 |---|---|---|
 | Remove `/auth/` prefix from auth routes | low | todo |
 | Browse search/filter (county, acreage) | medium | todo — post-MVP stretch |
-| Dashboard quick-links outdated (points to /app/search) | low | fix with homepage pass |
+| Dashboard quick-links outdated (points to /app/search) | low | ✅ fixed — role-aware cards, no /search link |
 
 ---
 
