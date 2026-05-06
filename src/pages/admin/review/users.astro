@@ -1,84 +1,241 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
-import DataTable from '@/components/DataTable.astro';
-import Th from '@/components/Th.astro';
-import Tr from '@/components/Tr.astro';
-import Td from '@/components/Td.astro';
+import Modal from '@/components/Modal.astro';
 
 const { supabase } = Astro.locals;
 
 const { data: pending } = await supabase
   .from('profiles')
-  .select('id, email, roles, status, first_name, last_name, phone, created_at')
+  .select('id, email, roles, status, first_name, last_name, phone, address, city, state, zip, created_at, terms_accepted')
   .eq('status', 'pending')
   .order('created_at', { ascending: true });
+
+const ids = pending?.map(p => p.id) ?? [];
+
+let farmerMap: Record<string, Record<string, any>> = {};
+let landownerMap: Record<string, Record<string, any>> = {};
+
+if (ids.length > 0) {
+  const [{ data: fps }, { data: lps }] = await Promise.all([
+    supabase.from('farmer_profiles').select('*').in('profile_id', ids),
+    supabase.from('landowner_profiles').select('*').in('profile_id', ids),
+  ]);
+  farmerMap    = Object.fromEntries((fps ?? []).map(fp => [fp.profile_id, fp]));
+  landownerMap = Object.fromEntries((lps ?? []).map(lp => [lp.profile_id, lp]));
+}
+
+function calcCompletion(
+  profile: Record<string, any>,
+  fp: Record<string, any> | null,
+  lp: Record<string, any> | null,
+): number {
+  const base = [profile.first_name, profile.last_name, profile.phone, profile.city, profile.state, profile.zip];
+  let filled = base.filter((v) => v != null && v !== '').length;
+  let total  = base.length;
+
+  if (profile.roles?.includes('farmer')) {
+    const fields = fp
+      ? [fp.farming_status, fp.farmable_acreage_range, fp.business_plan_status,
+         fp.counties?.length ? 'x' : null, fp.crops?.length ? 'x' : null, fp.farming_methods?.length ? 'x' : null]
+      : new Array(6).fill(null);
+    filled += fields.filter(Boolean).length;
+    total  += fields.length;
+  }
+  if (profile.roles?.includes('landowner')) {
+    const fields = lp ? [lp.referral_source] : [null];
+    filled += fields.filter(Boolean).length;
+    total  += fields.length;
+  }
+  return total > 0 ? Math.round((filled / total) * 100) : 0;
+}
+
+const display = (v: string | string[] | number | boolean | null | undefined): string => {
+  if (v == null || v === '') return '—';
+  if (typeof v === 'boolean') return v ? 'Yes' : 'No';
+  if (Array.isArray(v)) return v.length ? v.join(', ') : '—';
+  return String(v);
+};
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
   month: 'short', day: 'numeric', year: 'numeric',
 });
+
+const users = (pending ?? []).map(u => ({
+  ...u,
+  fp:  farmerMap[u.id]    ?? null,
+  lp:  landownerMap[u.id] ?? null,
+  pct: calcCompletion(u, farmerMap[u.id] ?? null, landownerMap[u.id] ?? null),
+}));
 ---
 
 <AdminLayout title="Pending users">
   <div class="space-y-6">
+
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">Pending users</h1>
-        <p class="text-sm text-muted-foreground">{pending?.length ?? 0} awaiting review</p>
+        <p class="text-sm text-muted-foreground">{users.length} awaiting review</p>
       </div>
       <a href="/admin/users" class="text-sm text-primary hover:underline">View all users →</a>
     </div>
 
-    {(!pending || pending.length === 0) && (
+    {users.length === 0 && (
       <div class="rounded-lg border bg-white p-12 text-center text-muted-foreground shadow-sm">
         No pending users — you're all caught up.
       </div>
     )}
 
-    {pending && pending.length > 0 && (
-      <DataTable>
-        <tr slot="head">
-          <Th>Name</Th>
-          <Th>Email</Th>
-          <Th>Role(s)</Th>
-          <Th>Joined</Th>
-          <Th>Actions</Th>
-        </tr>
-        {pending.map(user => (
-          <Tr>
-            <Td class="font-medium">
-              <a href={`/admin/users/${user.id}`} class="hover:text-primary hover:underline">
-                {user.first_name} {user.last_name}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {users.map(u => (
+        <>
+          <!-- Card -->
+          <div class="flex flex-col rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md">
+            <div class="flex-1 p-5">
+
+              <!-- Name + roles -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate font-semibold">{u.first_name} {u.last_name}</p>
+                  <p class="truncate text-sm text-muted-foreground">{u.email}</p>
+                </div>
+                <div class="flex shrink-0 flex-wrap gap-1">
+                  {(u.roles as string[]).map(r => (
+                    <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">{r}</span>
+                  ))}
+                </div>
+              </div>
+
+              <!-- Joined date -->
+              <p class="mt-2 text-xs text-muted-foreground">Submitted {fmt(u.created_at)}</p>
+
+              <!-- Completion bar -->
+              <div class="mt-4">
+                <div class="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Profile completion</span>
+                  <span class:list={[u.pct < 50 ? 'text-destructive' : u.pct < 80 ? 'text-amber-600' : 'text-primary', 'font-medium']}>
+                    {u.pct}%
+                  </span>
+                </div>
+                <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    class:list={['h-full rounded-full transition-all', u.pct < 50 ? 'bg-destructive' : u.pct < 80 ? 'bg-amber-500' : 'bg-primary']}
+                    style={`width: ${u.pct}%`}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card actions -->
+            <div class="flex items-center gap-2 border-t px-5 py-3">
+              <form method="POST" action={`/api/admin/users/${u.id}/approve`}>
+                <input type="hidden" name="return_to" value="/admin/review/users" />
+                <button type="submit" class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                  Approve
+                </button>
+              </form>
+              <form method="POST" action={`/api/admin/users/${u.id}/reject`}>
+                <input type="hidden" name="return_to" value="/admin/review/users" />
+                <button type="submit" class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10">
+                  Reject
+                </button>
+              </form>
+              <button
+                onclick={`document.getElementById('user-modal-${u.id}').showModal()`}
+                class="ml-auto text-xs text-primary hover:underline"
+              >
+                Review →
+              </button>
+            </div>
+          </div>
+
+          <!-- Detail modal -->
+          <Modal id={`user-modal-${u.id}`} title={`${u.first_name} ${u.last_name}`}>
+
+            <!-- Contact info -->
+            <section class="mb-5">
+              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contact</h3>
+              <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div><dt class="text-muted-foreground">Email</dt><dd>{u.email}</dd></div>
+                <div><dt class="text-muted-foreground">Phone</dt><dd>{display(u.phone)}</dd></div>
+                <div><dt class="text-muted-foreground">City</dt><dd>{display(u.city)}</dd></div>
+                <div><dt class="text-muted-foreground">State</dt><dd>{display(u.state)}</dd></div>
+                <div><dt class="text-muted-foreground">Zip</dt><dd>{display(u.zip)}</dd></div>
+                <div><dt class="text-muted-foreground">Terms accepted</dt><dd>{display(u.terms_accepted)}</dd></div>
+                <div><dt class="text-muted-foreground">Submitted</dt><dd>{fmt(u.created_at)}</dd></div>
+              </dl>
+            </section>
+
+            <!-- Farmer profile -->
+            {(u.roles as string[]).includes('farmer') && (
+              <section class="mb-5 border-t pt-5">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Farmer profile</h3>
+                {u.fp ? (
+                  <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                    <div><dt class="text-muted-foreground">Farming status</dt><dd>{display(u.fp.farming_status)}</dd></div>
+                    <div><dt class="text-muted-foreground">Acreage range</dt><dd>{display(u.fp.farmable_acreage_range)}</dd></div>
+                    <div><dt class="text-muted-foreground">Business plan</dt><dd>{display(u.fp.business_plan_status)}</dd></div>
+                    <div><dt class="text-muted-foreground">Referral source</dt><dd>{display(u.fp.referral_source)}</dd></div>
+                    <div><dt class="text-muted-foreground">Counties</dt><dd>{display(u.fp.counties)}</dd></div>
+                    <div><dt class="text-muted-foreground">Tenure options</dt><dd>{display(u.fp.tenure_options_desired)}</dd></div>
+                    <div><dt class="text-muted-foreground">Crops</dt><dd>{display(u.fp.crops)}</dd></div>
+                    <div><dt class="text-muted-foreground">Livestock</dt><dd>{display(u.fp.livestock)}</dd></div>
+                    <div><dt class="text-muted-foreground">Farming methods</dt><dd>{display(u.fp.farming_methods)}</dd></div>
+                    <div><dt class="text-muted-foreground">Infrastructure needed</dt><dd>{display(u.fp.infrastructure_needed)}</dd></div>
+                    {u.fp.farming_plans_and_goals && (
+                      <div class="sm:col-span-2">
+                        <dt class="text-muted-foreground">Plans & goals</dt>
+                        <dd class="mt-0.5 whitespace-pre-wrap">{u.fp.farming_plans_and_goals}</dd>
+                      </div>
+                    )}
+                    {u.fp.business_plan_summary && (
+                      <div class="sm:col-span-2">
+                        <dt class="text-muted-foreground">Business plan summary</dt>
+                        <dd class="mt-0.5 whitespace-pre-wrap">{u.fp.business_plan_summary}</dd>
+                      </div>
+                    )}
+                  </dl>
+                ) : (
+                  <p class="text-sm text-muted-foreground">Farmer profile not yet completed.</p>
+                )}
+              </section>
+            )}
+
+            <!-- Landowner profile -->
+            {(u.roles as string[]).includes('landowner') && (
+              <section class="mb-5 border-t pt-5">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Landowner profile</h3>
+                {u.lp ? (
+                  <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                    <div><dt class="text-muted-foreground">Referral source</dt><dd>{display(u.lp.referral_source)}</dd></div>
+                  </dl>
+                ) : (
+                  <p class="text-sm text-muted-foreground">Landowner profile not yet completed.</p>
+                )}
+              </section>
+            )}
+
+            <!-- Modal action footer -->
+            <div class="flex flex-wrap items-center gap-2 border-t pt-5">
+              <form method="POST" action={`/api/admin/users/${u.id}/approve`}>
+                <input type="hidden" name="return_to" value="/admin/review/users" />
+                <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  Approve
+                </button>
+              </form>
+              <form method="POST" action={`/api/admin/users/${u.id}/reject`}>
+                <input type="hidden" name="return_to" value="/admin/review/users" />
+                <button type="submit" class="rounded-md border border-destructive px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10">
+                  Reject
+                </button>
+              </form>
+              <a href={`/admin/users/${u.id}`} class="ml-auto text-sm text-primary hover:underline">
+                Full profile →
               </a>
-            </Td>
-            <Td class="text-muted-foreground">{user.email}</Td>
-            <Td>
-              <div class="flex flex-wrap gap-1">
-                {user.roles.map((r: string) => (
-                  <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium capitalize text-primary">{r}</span>
-                ))}
-              </div>
-            </Td>
-            <Td class="text-muted-foreground">{fmt(user.created_at)}</Td>
-            <Td>
-              <div class="flex gap-2">
-                <form method="POST" action={`/api/admin/users/${user.id}/approve`}>
-                  <button type="submit" class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                    Approve
-                  </button>
-                </form>
-                <form method="POST" action={`/api/admin/users/${user.id}/reject`}>
-                  <button type="submit" class="rounded border border-destructive px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10">
-                    Reject
-                  </button>
-                </form>
-                <a href={`/admin/users/${user.id}`} class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
-                  View
-                </a>
-              </div>
-            </Td>
-          </Tr>
-        ))}
-      </DataTable>
-    )}
+            </div>
+          </Modal>
+        </>
+      ))}
+    </div>
+
   </div>
 </AdminLayout>

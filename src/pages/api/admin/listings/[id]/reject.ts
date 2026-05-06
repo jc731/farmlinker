@@ -5,8 +5,9 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
   const { id } = params;
   if (!id) return redirect('/admin/review/listings', 302);
 
-  const form   = await request.formData();
-  const reason = form.get('reason')?.toString().trim() ?? '';
+  const form     = await request.formData();
+  const reason   = form.get('reason')?.toString().trim() ?? '';
+  const returnTo = form.get('return_to')?.toString() || `/admin/listings/${id}`;
 
   const admin = createSupabaseAdminClient();
   await admin
@@ -14,5 +15,5 @@ export const POST: APIRoute = async ({ params, request, redirect }) => {
     .update({ status: 'rejected', rejection_reason: reason || null })
     .eq('id', id);
 
-  return redirect(`/admin/listings/${id}`, 302);
+  return redirect(returnTo, 302);
 };

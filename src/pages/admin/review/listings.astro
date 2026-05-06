@@ -1,83 +1,233 @@
 ---
 import AdminLayout from '@/layouts/AdminLayout.astro';
+import Modal from '@/components/Modal.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import DataTable from '@/components/DataTable.astro';
-import Th from '@/components/Th.astro';
-import Tr from '@/components/Tr.astro';
-import Td from '@/components/Td.astro';
 
 const admin = createSupabaseAdminClient();
 
 const { data: pending } = await admin
   .from('listings')
-  .select('id, property_name, county, city, total_acreage, farmable_acreage, created_at, owner_profile_id, profiles(first_name, last_name, email)')
+  .select('*, profiles(id, first_name, last_name, email, phone, city, state)')
   .eq('status', 'pending')
   .order('created_at', { ascending: true });
 
+function calcCompletion(l: Record<string, any>): number {
+  const fields = [
+    l.property_name,
+    l.county,
+    l.city,
+    l.total_acreage     != null ? 'x' : null,
+    l.farmable_acreage  != null ? 'x' : null,
+    l.tenure_options_offered?.length  ? 'x' : null,
+    l.infrastructure_available?.length ? 'x' : null,
+  ];
+  const filled = fields.filter(Boolean).length;
+  return Math.round((filled / fields.length) * 100);
+}
+
+const display    = (v: string | null | undefined) => v || '—';
+const displayArr = (a: string[] | null | undefined) => a?.length ? a.join(', ') : '—';
+const displayBool = (v: boolean | null | undefined) =>
+  v === true ? 'Yes' : v === false ? 'No' : '—';
 const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', {
   month: 'short', day: 'numeric', year: 'numeric',
 });
+const fmtNum = (v: number | null) => v != null ? v.toLocaleString() : '—';
+
+const listings = (pending ?? []).map(l => ({
+  ...l,
+  owner: (Array.isArray(l.profiles) ? l.profiles[0] : l.profiles) ?? null,
+  pct:   calcCompletion(l),
+}));
 ---
 
 <AdminLayout title="Pending listings">
   <div class="space-y-6">
+
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">Pending listings</h1>
-        <p class="text-sm text-muted-foreground">{pending?.length ?? 0} awaiting review</p>
+        <p class="text-sm text-muted-foreground">{listings.length} awaiting review</p>
       </div>
-      <a href="/admin/users" class="text-sm text-primary hover:underline">All users →</a>
+      <a href="/admin/listings" class="text-sm text-primary hover:underline">View all listings →</a>
     </div>
 
-    {(!pending || pending.length === 0) && (
+    {listings.length === 0 && (
       <div class="rounded-lg border bg-white p-12 text-center text-muted-foreground shadow-sm">
         No pending listings — you're all caught up.
       </div>
     )}
 
-    {pending && pending.length > 0 && (
-      <DataTable>
-        <tr slot="head">
-          <Th>Property</Th>
-          <Th>Owner</Th>
-          <Th>County</Th>
-          <Th>Acreage</Th>
-          <Th>Submitted</Th>
-          <Th>Actions</Th>
-        </tr>
-        {pending.map(l => {
-          const owner = Array.isArray(l.profiles) ? l.profiles[0] : l.profiles;
-          return (
-            <Tr>
-              <Td class="font-medium">
-                <a href={`/admin/listings/${l.id}`} class="hover:text-primary hover:underline">
-                  {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
-                </a>
-              </Td>
-              <Td class="text-muted-foreground">
-                {owner ? `${owner.first_name} ${owner.last_name}` : '—'}
-              </Td>
-              <Td class="text-muted-foreground">{l.county ?? '—'}</Td>
-              <Td class="text-muted-foreground">
-                {l.farmable_acreage != null ? `${l.farmable_acreage} ac` : l.total_acreage != null ? `${l.total_acreage} ac` : '—'}
-              </Td>
-              <Td class="text-muted-foreground">{fmt(l.created_at)}</Td>
-              <Td>
-                <div class="flex gap-2">
-                  <form method="POST" action={`/api/admin/listings/${l.id}/approve`}>
-                    <button type="submit" class="rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-                      Approve
-                    </button>
-                  </form>
-                  <a href={`/admin/listings/${l.id}`} class="rounded border px-3 py-1 text-xs font-medium hover:bg-muted">
-                    Review
-                  </a>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {listings.map(l => (
+        <>
+          <!-- Card -->
+          <div class="flex flex-col rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md">
+            <div class="flex-1 p-5">
+
+              <!-- Property name + acreage -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="truncate font-semibold">
+                    {l.property_name ?? <span class="italic text-muted-foreground">Unnamed</span>}
+                  </p>
+                  <p class="text-sm text-muted-foreground">
+                    {[l.county ? `${l.county} Co.` : null, l.city].filter(Boolean).join(' · ') || '—'}
+                  </p>
                 </div>
-              </Td>
-            </Tr>
-          );
-        })}
-      </DataTable>
-    )}
+                <span class="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                  {l.farmable_acreage != null ? `${l.farmable_acreage} ac` : l.total_acreage != null ? `${l.total_acreage} ac` : '—'}
+                </span>
+              </div>
+
+              <!-- Owner -->
+              <p class="mt-2 text-xs text-muted-foreground">
+                {l.owner ? `${l.owner.first_name} ${l.owner.last_name}` : '—'}
+                {l.owner?.email ? ` · ${l.owner.email}` : ''}
+              </p>
+              <p class="mt-0.5 text-xs text-muted-foreground">Submitted {fmt(l.created_at)}</p>
+
+              <!-- Completion bar -->
+              <div class="mt-4">
+                <div class="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Listing completion</span>
+                  <span class:list={[l.pct < 50 ? 'text-destructive' : l.pct < 80 ? 'text-amber-600' : 'text-primary', 'font-medium']}>
+                    {l.pct}%
+                  </span>
+                </div>
+                <div class="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    class:list={['h-full rounded-full transition-all', l.pct < 50 ? 'bg-destructive' : l.pct < 80 ? 'bg-amber-500' : 'bg-primary']}
+                    style={`width: ${l.pct}%`}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card actions -->
+            <div class="flex items-center gap-2 border-t px-5 py-3">
+              <form method="POST" action={`/api/admin/listings/${l.id}/approve`}>
+                <input type="hidden" name="return_to" value="/admin/review/listings" />
+                <button type="submit" class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+                  Approve
+                </button>
+              </form>
+              <button
+                onclick={`document.getElementById('listing-modal-${l.id}').showModal()`}
+                class="rounded-md border border-destructive px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10"
+              >
+                Reject
+              </button>
+              <button
+                onclick={`document.getElementById('listing-modal-${l.id}').showModal()`}
+                class="ml-auto text-xs text-primary hover:underline"
+              >
+                Review →
+              </button>
+            </div>
+          </div>
+
+          <!-- Detail + reject modal -->
+          <Modal id={`listing-modal-${l.id}`} title={l.property_name ?? 'Unnamed listing'} maxWidth="max-w-3xl">
+
+            <!-- Owner info -->
+            {l.owner && (
+              <section class="mb-5">
+                <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Owner</h3>
+                <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+                  <div>
+                    <dt class="text-muted-foreground">Name</dt>
+                    <dd>
+                      <a href={`/admin/users/${l.owner.id}`} class="text-primary hover:underline">
+                        {l.owner.first_name} {l.owner.last_name}
+                      </a>
+                    </dd>
+                  </div>
+                  <div><dt class="text-muted-foreground">Email</dt><dd class="truncate">{l.owner.email}</dd></div>
+                  <div><dt class="text-muted-foreground">Phone</dt><dd>{display(l.owner.phone)}</dd></div>
+                  <div><dt class="text-muted-foreground">Location</dt><dd>{[l.owner.city, l.owner.state].filter(Boolean).join(', ') || '—'}</dd></div>
+                </dl>
+              </section>
+            )}
+
+            <!-- Property details -->
+            <section class="mb-5 border-t pt-5">
+              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Property details</h3>
+              <dl class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+                <div><dt class="text-muted-foreground">Total acreage</dt><dd>{fmtNum(l.total_acreage)} ac</dd></div>
+                <div><dt class="text-muted-foreground">Farmable</dt><dd>{fmtNum(l.farmable_acreage)} ac</dd></div>
+                <div><dt class="text-muted-foreground">County</dt><dd>{display(l.county)}</dd></div>
+                <div><dt class="text-muted-foreground">City</dt><dd>{display(l.city)}</dd></div>
+                <div><dt class="text-muted-foreground">Organic / eligible</dt><dd>{displayBool(l.certified_organic_or_eligible)}</dd></div>
+                <div><dt class="text-muted-foreground">Zoning appropriate</dt><dd>{displayBool(l.zoning_appropriate)}</dd></div>
+                <div><dt class="text-muted-foreground">Conservation easement</dt><dd>{displayBool(l.conservation_easement)}</dd></div>
+                <div><dt class="text-muted-foreground">Public access</dt><dd>{displayBool(l.public_access_allowed)}</dd></div>
+              </dl>
+            </section>
+
+            <!-- Land use -->
+            <section class="mb-5 border-t pt-5">
+              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Land use</h3>
+              <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                <div><dt class="text-muted-foreground">Infrastructure</dt><dd>{displayArr(l.infrastructure_available)}</dd></div>
+                <div><dt class="text-muted-foreground">Crops permitted</dt><dd>{displayArr(l.crops_permitted)}</dd></div>
+                <div><dt class="text-muted-foreground">Livestock permitted</dt><dd>{displayArr(l.livestock_permitted)}</dd></div>
+                <div><dt class="text-muted-foreground">Preferred methods</dt><dd>{displayArr(l.preferred_farming_methods)}</dd></div>
+              </dl>
+            </section>
+
+            <!-- Tenure -->
+            <section class="mb-5 border-t pt-5">
+              <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tenure</h3>
+              <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                <div><dt class="text-muted-foreground">Options offered</dt><dd>{displayArr(l.tenure_options_offered)}</dd></div>
+                <div><dt class="text-muted-foreground">Availability</dt><dd>{display(l.tenure_availability_timing)}</dd></div>
+                {l.tenure_notes && (
+                  <div class="sm:col-span-2">
+                    <dt class="text-muted-foreground">Tenure notes</dt>
+                    <dd class="mt-0.5 whitespace-pre-wrap">{l.tenure_notes}</dd>
+                  </div>
+                )}
+              </dl>
+            </section>
+
+            <!-- Reject form -->
+            <section class="border-t pt-5">
+              <h3 class="mb-1 text-sm font-semibold text-destructive">Reject listing</h3>
+              <p class="mb-3 text-xs text-muted-foreground">
+                Provide a reason so the landowner knows what to fix before resubmitting.
+              </p>
+              <form method="POST" action={`/api/admin/listings/${l.id}/reject`} class="space-y-3">
+                <input type="hidden" name="return_to" value="/admin/review/listings" />
+                <textarea
+                  name="reason"
+                  required
+                  rows={2}
+                  placeholder="e.g. Missing tenure options. Please specify at least one lease arrangement."
+                  class="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                ></textarea>
+                <button type="submit" class="rounded-md border border-destructive px-4 py-2 text-sm font-medium text-destructive hover:bg-destructive/10">
+                  Reject listing
+                </button>
+              </form>
+            </section>
+
+            <!-- Modal action footer -->
+            <div class="mt-5 flex flex-wrap items-center gap-2 border-t pt-5">
+              <form method="POST" action={`/api/admin/listings/${l.id}/approve`}>
+                <input type="hidden" name="return_to" value="/admin/review/listings" />
+                <button type="submit" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+                  Approve
+                </button>
+              </form>
+              <a href={`/admin/listings/${l.id}`} class="ml-auto text-sm text-primary hover:underline">
+                Full review page →
+              </a>
+            </div>
+          </Modal>
+        </>
+      ))}
+    </div>
+
   </div>
 </AdminLayout>

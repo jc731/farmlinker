@@ -1,0 +1,59 @@
+---
+/**
+ * Generic modal dialog using the native <dialog> element.
+ *
+ * Usage:
+ *   <Modal id="my-modal" title="Edit item">
+ *     <p>Content here</p>
+ *   </Modal>
+ *   <button onclick="document.getElementById('my-modal').showModal()">Open</button>
+ *
+ * Props:
+ *   id        — unique ID; the trigger button references it via getElementById
+ *   title     — heading shown in the modal header
+ *   maxWidth  — Tailwind max-width class (default: max-w-2xl)
+ */
+
+interface Props {
+  id: string;
+  title: string;
+  maxWidth?: string;
+}
+
+const { id, title, maxWidth = 'max-w-2xl' } = Astro.props;
+---
+
+<dialog
+  id={id}
+  class:list={['w-full rounded-xl bg-white shadow-2xl backdrop:bg-black/50 backdrop:backdrop-blur-sm p-0', maxWidth]}
+  data-modal
+>
+  <div class="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+    <h2 class="text-base font-semibold">{title}</h2>
+    <form method="dialog">
+      <button
+        type="submit"
+        aria-label="Close"
+        class="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </form>
+  </div>
+
+  <div class="max-h-[75vh] overflow-y-auto p-6">
+    <slot />
+  </div>
+</dialog>
+
+<script>
+  // Close each modal when the user clicks outside its content (on the backdrop).
+  // Astro deduplicates this module script — runs once even with many Modal instances.
+  document.querySelectorAll<HTMLDialogElement>('dialog[data-modal]').forEach(dialog => {
+    dialog.addEventListener('click', (e) => {
+      if (e.target === dialog) dialog.close();
+    });
+  });
+</script>
