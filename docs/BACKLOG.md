@@ -82,7 +82,7 @@ Last updated: 2026-05-06
 - [x] Landowner can reply; both parties see thread
 - [x] Inquiry status: open / closed / blocked
 - [x] Admin can view all threads, send messages, block inquiries
-- [ ] Search/filter on browse (county, acreage, keyword) — post-MVP stretch
+- [x] Search/filter on browse (county, acreage, tenure, organic) — server-side GET form
 
 ### M7 — Polish & Deploy ✅
 - [x] Profile edit page (`/app/profile`) — contact info + role-specific fields
@@ -155,18 +155,22 @@ All immediate and short-term pre-launch items shipped:
 - Netlify deploy config (`netlify.toml`), preview/branch dev tools flag
 - SSR data freshness confirmed: every request hits Supabase fresh
 
-### Short-term — Post-launch
-1. **Browse search/filter** — county + acreage filter on `/app/browse` (high value, stretch)
+### Recently shipped (post-M7)
+- ✅ Browse search/filter — county, acreage range, tenure type, organic toggle (server-side GET)
+- ✅ Admin rejection reason for users — reason saved, displayed on user dashboard
+- ✅ Listing archival — landowner can archive approved listings + unarchive back to draft
+- ✅ Admin user text search — name/email filter on `/admin/users`
+- ✅ Admin review queue reject modal — requires reason before submitting
 
 ### Post-launch
-7. **Site config / theme system** — Status badge colors (`STATUS_COLORS`, `LISTING_STATUS_COLORS`) are currently hardcoded in `src/lib/status-colors.ts` (to be extracted). These, along with virtually all theme values (primary color, brand name, logo, copy), should eventually be driven by a `site_config` table in Supabase, fetched at request time by middleware and injected into locals. This enables true white-labeling (E11) and admin-controlled branding without a redeploy. Requires: DB table, middleware fetch, component updates. Not urgent — hardcoded values are fine for single-org MVP.
-8. **Email notifications** — approval granted, inquiry received, new message
-8. **Automated / end-to-end testing** — no test suite exists yet. Candidates: Playwright for critical user journeys (farmer onboard → approve → browse → inquire; landowner onboard → listing approve → receive inquiry), Vitest for API route unit tests. Should cover the 11 UX gaps surfaced in the May 2026 concept-testing session before those flows are considered production-ready.
-9. **Admin rejection reason for users** — user rejections currently have no reason field (unlike listings). Would need a `rejection_reason` column on `profiles`, a UI input on the reject action (modal or inline), and a display on the user's dashboard. Deferred: not blocking MVP, low volume, contact email is the fallback.
-10. **Per-listing re-approval toggle** — currently approved landowners' new listings auto-approve (skip the queue). Add an admin-configurable setting to require re-approval for every listing regardless of landowner status.
-10. **E11 white-label config** — when second org/client is engaged
-9. **Listing archival UX** — landowner can archive their own listing
-10. **Farmer profile visibility** — landowners can see approved farmer profiles (currently one-directional)
+1. **Admin review pull queue / assignment** — Admins should be able to "claim" a pending user or listing from the review queue so others can see who is working on what. Prevents duplicate effort. Approach: `claimed_by` nullable FK on `profiles`/`listings` referencing the admin's profile ID; show claimed-by name on cards; unclaim button; filter "mine" vs "all". Low complexity, high UX value as admin team grows.
+2. **Anon browse** — Public listing browse at `/browse` (outside `/app`) showing limited info (county, acreage range, tenure badges) without sign-in; contact details and full description gated. Requires: new public routes, RLS `SELECT` for `anon` role on approved listings (limited columns or view), sign-up CTA banner.
+3. **Email notifications** — approval granted, inquiry received, new message (Supabase Edge Functions or Resend)
+4. **Automated / end-to-end testing** — Playwright for critical journeys (farmer onboard → approve → browse → inquire; landowner onboard → listing approve → receive inquiry), Vitest for API route unit tests.
+5. **Per-listing re-approval toggle** — admin-configurable setting to require re-approval for every listing regardless of landowner status.
+6. **Farmer profile visibility** — landowners can see approved farmer profiles (currently one-directional).
+7. **Site config / theme system** — `site_config` DB table for status colors, brand name, logo, copy; enables E11 white-labeling.
+8. **E11 white-label config** — when second org/client is engaged.
 
 ---
 
@@ -175,7 +179,7 @@ All immediate and short-term pre-launch items shipped:
 | Item | Priority | Status |
 |---|---|---|
 | Remove `/auth/` prefix from auth routes | low | todo |
-| Browse search/filter (county, acreage) | medium | todo — post-MVP stretch |
+| Browse search/filter (county, acreage, tenure, organic) | medium | ✅ done |
 | Dashboard quick-links outdated (points to /app/search) | low | ✅ fixed — role-aware cards, no /search link |
 
 ---
