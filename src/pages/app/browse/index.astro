@@ -3,11 +3,31 @@ import AppLayout from '@/layouts/AppLayout.astro';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import EmptyState from '@/components/EmptyState.astro';
 import PageHeader from '@/components/PageHeader.astro';
+import { TENURE_OPTIONS } from '@/lib/onboarding-options';
 
 const { supabase } = Astro.locals;
 
-// Fetch approved listings with their media (RLS: authenticated see approved)
-const { data: listings } = await supabase
+// ── Read filter params ──────────────────────────────────────────────────────
+const params   = Astro.url.searchParams;
+const county   = params.get('county')    ?? '';
+const minAcres = params.get('min_acres') ? Number(params.get('min_acres')) : null;
+const maxAcres = params.get('max_acres') ? Number(params.get('max_acres')) : null;
+const tenure   = params.get('tenure')    ?? '';
+const organic  = params.get('organic') === '1';
+
+const hasFilters = !!(county || minAcres || maxAcres || tenure || organic);
+
+// ── Fetch distinct counties from approved listings ──────────────────────────
+const { data: countyRows } = await supabase
+  .from('listings')
+  .select('county')
+  .eq('status', 'approved')
+  .not('county', 'is', null);
+
+const counties = [...new Set((countyRows ?? []).map(r => r.county).filter(Boolean))].sort() as string[];
+
+// ── Build filtered listings query ───────────────────────────────────────────
+let query = supabase
   .from('listings')
   .select(`
     id, property_name, county, city, state,
@@ -18,10 +38,18 @@ const { data: listings } = await supabase
   .eq('status', 'approved')
   .order('created_at', { ascending: false });
 
-// Collect one featured image path per listing (lowest sort_order wins)
+if (county)   query = query.eq('county', county);
+if (minAcres) query = query.gte('total_acreage', minAcres);
+if (maxAcres) query = query.lte('total_acreage', maxAcres);
+if (tenure)   query = query.contains('tenure_options_offered', [tenure]);
+if (organic)  query = query.eq('certified_organic_or_eligible', true);
+
+const { data: listings } = await query;
+
+// ── Signed featured images ──────────────────────────────────────────────────
 type MediaItem = { id: string; storage_path: string; sort_order: number };
 const featuredPaths: string[] = [];
-const listingFeatured: Record<string, string> = {}; // listing.id → storage_path
+const listingFeatured: Record<string, string> = {};
 
 for (const l of listings ?? []) {
   const sorted = [...((l.listing_media as MediaItem[]) ?? [])].sort(
@@ -34,7 +62,6 @@ for (const l of listings ?? []) {
   }
 }
 
-// Batch-sign all featured image paths in one call
 const signedMap: Record<string, string> = {};
 if (featuredPaths.length > 0) {
   const admin = createSupabaseAdminClient();
@@ -47,24 +74,126 @@ if (featuredPaths.length > 0) {
 }
 
 const count = listings?.length ?? 0;
+const countLabel = hasFilters
+  ? `${count} listing${count !== 1 ? 's' : ''} match your filters`
+  : `${count} listing${count !== 1 ? 's' : ''} available`;
+
+// Input/select shared classes
+const inputCls = 'rounded-md border border-input bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring';
 ---
 
 <AppLayout title="Browse listings">
   <div class="space-y-6">
-    <PageHeader
-      title="Browse farmland"
-      description={`${count} listing${count !== 1 ? 's' : ''} available`}
-    />
 
+    <PageHeader title="Browse farmland" description={countLabel} />
+
+    <!-- Filter bar -->
+    <form method="GET" class="rounded-xl border bg-white p-4 shadow-sm">
+      <div class="flex flex-wrap items-end gap-3">
+
+        <!-- County -->
+        <div class="flex flex-col gap-1">
+          <label for="f-county" class="text-xs font-medium text-muted-foreground">County</label>
+          <select id="f-county" name="county" class={inputCls}>
+            <option value="">All counties</option>
+            {counties.map(c => (
+              <option value={c} selected={county === c}>{c}</option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Acreage range -->
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-medium text-muted-foreground">Acreage</span>
+          <div class="flex items-center gap-2">
+            <input
+              id="f-min"
+              type="number"
+              name="min_acres"
+              min="0"
+              placeholder="Min"
+              value={minAcres ?? ''}
+              class:list={[inputCls, 'w-24']}
+            />
+            <span class="text-sm text-muted-foreground">–</span>
+            <input
+              id="f-max"
+              type="number"
+              name="max_acres"
+              min="0"
+              placeholder="Max"
+              value={maxAcres ?? ''}
+              class:list={[inputCls, 'w-24']}
+            />
+          </div>
+        </div>
+
+        <!-- Tenure type -->
+        <div class="flex flex-col gap-1">
+          <label for="f-tenure" class="text-xs font-medium text-muted-foreground">Tenure type</label>
+          <select id="f-tenure" name="tenure" class={inputCls}>
+            <option value="">Any tenure</option>
+            {TENURE_OPTIONS.map(t => (
+              <option value={t} selected={tenure === t}>{t}</option>
+            ))}
+          </select>
+        </div>
+
+        <!-- Organic -->
+        <label class="flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer hover:bg-muted/50 transition-colors">
+          <input type="checkbox" name="organic" value="1" checked={organic} class="accent-primary" />
+          Organic eligible
+        </label>
+
+        <!-- Actions -->
+        <div class="flex gap-2">
+          <button
+            type="submit"
+            class="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Apply
+          </button>
+          {hasFilters && (
+            <a
+              href="/app/browse"
+              class="rounded-md border px-4 py-1.5 text-sm font-medium hover:bg-muted"
+            >
+              Clear
+            </a>
+          )}
+        </div>
+
+      </div>
+
+      {hasFilters && (
+        <p class="mt-2 text-xs text-muted-foreground">
+          Filters active:
+          {[
+            county && `County: ${county}`,
+            (minAcres || maxAcres) && `Acreage: ${minAcres ?? '0'}–${maxAcres ?? '∞'} ac`,
+            tenure && `Tenure: ${tenure}`,
+            organic && 'Organic eligible',
+          ].filter(Boolean).join(' · ')}
+        </p>
+      )}
+    </form>
+
+    <!-- Results -->
     {count === 0 ? (
-      <EmptyState message="No approved listings yet — check back soon." />
+      <EmptyState message={hasFilters ? 'No listings match your filters.' : 'No approved listings yet — check back soon.'}>
+        {hasFilters && (
+          <a href="/app/browse" class="mt-3 inline-block text-sm text-primary hover:underline">
+            Clear filters
+          </a>
+        )}
+      </EmptyState>
     ) : (
       <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {(listings ?? []).map(l => {
           const featuredPath = listingFeatured[l.id];
           const imgUrl = featuredPath ? signedMap[featuredPath] : null;
           const acreage = l.farmable_acreage ?? l.total_acreage;
-          const tenure  = (l.tenure_options_offered as string[] ?? []).slice(0, 2);
+          const tenureList = (l.tenure_options_offered as string[] ?? []).slice(0, 2);
 
           return (
             <a
@@ -83,13 +212,9 @@ const count = listings?.length ?? 0;
                 ) : (
                   <div class="flex h-full flex-col items-center justify-center gap-3 bg-gradient-to-br from-primary/8 to-primary/3">
                     <svg viewBox="0 0 80 55" xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-primary/30" aria-hidden="true">
-                      {/* Sun */}
                       <circle cx="62" cy="14" r="9" fill="currentColor" opacity="0.5"/>
-                      {/* Far hill */}
                       <ellipse cx="80" cy="50" rx="55" ry="22" fill="currentColor" opacity="0.25"/>
-                      {/* Near hill */}
                       <ellipse cx="20" cy="55" rx="40" ry="18" fill="currentColor" opacity="0.4"/>
-                      {/* Wheat stalks */}
                       <line x1="35" y1="42" x2="35" y2="26" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
                       <ellipse cx="35" cy="23" rx="3" ry="7" fill="currentColor" opacity="0.45"/>
                       <line x1="44" y1="44" x2="44" y2="30" stroke="currentColor" stroke-width="1.5" opacity="0.5"/>
@@ -108,7 +233,7 @@ const count = listings?.length ?? 0;
               </div>
 
               <!-- Card body -->
-              <div class="p-4 space-y-1.5">
+              <div class="space-y-1.5 p-4">
                 <h3 class="font-semibold leading-tight">
                   {l.property_name ?? <span class="italic text-muted-foreground">Unnamed property</span>}
                 </h3>
@@ -120,9 +245,9 @@ const count = listings?.length ?? 0;
                     {acreage.toLocaleString()} {l.farmable_acreage != null ? 'farmable' : 'total'} acres
                   </p>
                 )}
-                {tenure.length > 0 && (
+                {tenureList.length > 0 && (
                   <div class="flex flex-wrap gap-1 pt-0.5">
-                    {tenure.map(t => (
+                    {tenureList.map(t => (
                       <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                         {t}
                       </span>
@@ -140,5 +265,6 @@ const count = listings?.length ?? 0;
         })}
       </div>
     )}
+
   </div>
 </AppLayout>
