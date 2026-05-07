@@ -161,10 +161,11 @@ All immediate and short-term pre-launch items shipped:
 - ✅ Listing archival — landowner can archive approved listings + unarchive back to draft
 - ✅ Admin user text search — name/email filter on `/admin/users`
 - ✅ Admin review queue reject modal — requires reason before submitting
+- ✅ Anon browse — `/browse` + `/browse/[id]` public routes; photos/acreage/tenure visible; notes/owner gated behind sign-up CTA; RLS anon policies + grants applied
+- ✅ Sign-in `?next=` redirect — after auth, redirects to originating page (validated, open-redirect-safe)
 
 ### Post-launch
 1. **Admin review pull queue / assignment** — Admins should be able to "claim" a pending user or listing from the review queue so others can see who is working on what. Prevents duplicate effort. Approach: `claimed_by` nullable FK on `profiles`/`listings` referencing the admin's profile ID; show claimed-by name on cards; unclaim button; filter "mine" vs "all". Low complexity, high UX value as admin team grows.
-2. **Anon browse** — Public listing browse at `/browse` (outside `/app`) showing limited info (county, acreage range, tenure badges) without sign-in; contact details and full description gated. Requires: new public routes, RLS `SELECT` for `anon` role on approved listings (limited columns or view), sign-up CTA banner.
 3. **Email notifications** — approval granted, inquiry received, new message (Supabase Edge Functions or Resend)
 4. **Automated / end-to-end testing** — Playwright for critical journeys (farmer onboard → approve → browse → inquire; landowner onboard → listing approve → receive inquiry), Vitest for API route unit tests.
 5. **Per-listing re-approval toggle** — admin-configurable setting to require re-approval for every listing regardless of landowner status.
