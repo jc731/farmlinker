@@ -7,13 +7,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Props {
   errorParam?: string | null;
+  next?: string;
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
   suspended: 'Your account has been suspended. Please contact support.',
 };
 
-export function SignInForm({ errorParam }: Props) {
+export function SignInForm({ errorParam, next }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(
@@ -38,7 +39,7 @@ export function SignInForm({ errorParam }: Props) {
       return;
     }
 
-    window.location.href = '/app';
+    window.location.href = next || '/app';
   };
 
   return (
@@ -80,7 +81,7 @@ export function SignInForm({ errorParam }: Props) {
       </Button>
       <p className="text-center text-sm text-muted-foreground">
         Don't have an account?{' '}
-        <a href="/auth/sign-up" className="text-primary hover:underline">
+        <a href={next ? `/auth/sign-up?next=${encodeURIComponent(next)}` : '/auth/sign-up'} className="text-primary hover:underline">
           Sign up
         </a>
       </p>
