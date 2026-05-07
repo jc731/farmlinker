@@ -28,8 +28,11 @@ const isLandowner = profile?.roles.includes('landowner');
         <CardHeader>
           <CardTitle>Application not approved</CardTitle>
           <CardDescription>
-            Your application was not approved at this time. If you have questions,
-            please contact us at <a href="mailto:hello@farmlinker.com" class="text-primary hover:underline">hello@farmlinker.com</a>.
+            {profile?.rejection_reason
+              ? profile.rejection_reason
+              : 'Your application was not approved at this time.'}
+            {' '}If you have questions, please contact us at{' '}
+            <a href="mailto:hello@farmlinker.com" class="text-primary hover:underline">hello@farmlinker.com</a>.
           </CardDescription>
         </CardHeader>
       </Card>

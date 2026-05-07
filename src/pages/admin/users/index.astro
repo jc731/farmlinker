@@ -13,6 +13,7 @@ const { supabase } = Astro.locals;
 const statusFilter = Astro.url.searchParams.get('status') ?? 'all';
 const sortCol      = Astro.url.searchParams.get('sort') ?? 'joined';
 const sortDir      = Astro.url.searchParams.get('dir')  === 'asc' ? 'asc' : 'desc';
+const search       = Astro.url.searchParams.get('q')    ?? '';
 
 const SORT_MAP: Record<string, string> = {
   name:   'last_name',
@@ -35,6 +36,10 @@ if (statusFilter !== 'all') {
   query = query.eq('status', statusFilter);
 }
 
+if (search) {
+  query = query.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+}
+
 const { data: users } = await query;
 
 const STATUS_COLORS: Record<string, string> = {
@@ -52,6 +57,7 @@ function sortHref(col: string) {
   const nextDir = sortCol === col && sortDir === 'asc' ? 'desc' : 'asc';
   const params = new URLSearchParams();
   if (statusFilter !== 'all') params.set('status', statusFilter);
+  if (search) params.set('q', search);
   params.set('sort', col);
   params.set('dir', nextDir);
   return `/admin/users?${params.toString()}`;
@@ -77,6 +83,23 @@ function sortHref(col: string) {
         </a>
       ))}
     </div>
+
+    <form method="GET" action="/admin/users" class="flex gap-2">
+      {statusFilter !== 'all' && <input type="hidden" name="status" value={statusFilter} />}
+      <input type="hidden" name="sort" value={sortCol} />
+      <input type="hidden" name="dir" value={sortDir} />
+      <input
+        type="search"
+        name="q"
+        value={search}
+        placeholder="Search name or email…"
+        class="w-64 rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <button type="submit" class="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90">Search</button>
+      {search && (
+        <a href={`/admin/users?status=${statusFilter}&sort=${sortCol}&dir=${sortDir}`} class="rounded-md border px-3 py-1.5 text-sm hover:bg-muted">Clear</a>
+      )}
+    </form>
 
     <DataTable>
       <tr slot="head">

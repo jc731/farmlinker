@@ -31,7 +31,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if ((isAppRoute || isAdminRoute) && user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, roles, status, first_name, last_name, farmer_profiles(profile_id), landowner_profiles(profile_id)')
+      .select('id, roles, status, first_name, last_name, rejection_reason, farmer_profiles(profile_id), landowner_profiles(profile_id)')
       .eq('id', user.id)
       .single();
 

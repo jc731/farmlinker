@@ -16,9 +16,11 @@ const { data: listing } = await supabase
 
 if (!listing) return Astro.redirect('/app/listings');
 
-const isOwner  = listing.owner_profile_id === profile?.id;
-const canEdit   = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
-const canSubmit = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
+const isOwner    = listing.owner_profile_id === profile?.id;
+const canEdit    = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
+const canSubmit  = isOwner && (listing.status === 'draft' || listing.status === 'rejected');
+const canArchive = isOwner && listing.status === 'approved';
+const isArchived = isOwner && listing.status === 'archived';
 
 const STATUS_COLORS: Record<string, string> = {
   draft:    'bg-zinc-100 text-zinc-600',
@@ -83,10 +85,31 @@ const STATUS_COLORS: Record<string, string> = {
                 Awaiting review
               </span>
             )}
-            {listing.status === 'approved' && (
+            {canArchive && (
+              <form method="POST" action={`/api/listings/${id}/archive`}>
+                <button
+                  type="submit"
+                  class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                  onclick="return confirm('Archive this listing? It will no longer appear in browse results. You can unarchive it later.')"
+                >
+                  Archive
+                </button>
+              </form>
+            )}
+            {listing.status === 'approved' && !canArchive && (
               <span class="rounded-md border border-green-300 px-4 py-2 text-sm font-medium text-green-700">
                 Live
               </span>
+            )}
+            {isArchived && (
+              <form method="POST" action={`/api/listings/${id}/unarchive`}>
+                <button
+                  type="submit"
+                  class="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  Unarchive (restore to draft)
+                </button>
+              </form>
             )}
           </div>
         )}
